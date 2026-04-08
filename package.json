@@ -1,0 +1,20 @@
+{
+  "name": "nejy",
+  "version": "0.50.0",
+  "description": "an interpreter calling node.js modules, described by JSON(5) or YAML",
+  "keywords": [
+    "insane"
+  ],
+  "license": "MIT",
+  "author": "Paul Brewer (EAFTC) and various AIs",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "json5": "^2.2.3",
+    "mathjs": "^15.2.0",
+    "yaml": "^2.8.3"
+  }
+}

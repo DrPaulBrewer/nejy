@@ -1,0 +1,11 @@
+[
+  ["SET", ["user_name", "Developer"]],
+  ["DEF", [
+    "GreetUser", 
+    [
+      ["console.log", ["Hello,", "$user_name", "! Welcome to the secure sandbox."]]
+    ]
+  ]],
+  ["CALL", ["GreetUser"]],
+  ["console.log", ["Execution status: Operational"]]
+]

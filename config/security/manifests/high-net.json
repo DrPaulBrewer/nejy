@@ -1,0 +1,19 @@
+{
+  "allowData": ["own_data", "external"],
+  "allowCalls": ["nodejs_api"],
+  "allowImports": ["local_imports"],
+  "maxRisk": "HIGH",
+  "quotas": {
+    "maxCpuMs": 2000,
+    "maxMemoryMb": 512,
+    "maxFsBytes": 102400,
+    "fetchRules": [
+      {
+        "pattern": {}, 
+        "methods": ["GET"],
+        "forbiddenHeaders": ["Cookie", "Authorization"],
+        "forcedHeaders": { "User-Agent": "SecureBot/24.0" }
+      }
+    ]
+  }
+}

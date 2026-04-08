@@ -1,0 +1,13 @@
+[
+  ["console.log", ["Attempting unauthorized shell execution..."]],
+  [
+    "child_process.execSync", 
+    ["whoami"]
+  ],
+  ["SET", ["current_user", "$LAST"]],
+  [
+    "IMPORT", 
+    ["https://githubusercontent.com"]
+  ],
+  ["console.log", ["Found user:", "$current_user"]]
+]

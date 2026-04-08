@@ -1,0 +1,6 @@
+{
+  "allowData": ["own_data"],
+  "allowCalls": ["nodejs_api"],
+  "allowImports": ["local_imports"],
+  "maxRisk": "LOW"
+}

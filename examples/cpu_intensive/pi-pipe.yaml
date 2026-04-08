@@ -1,0 +1,27 @@
+# pi-pipe.yaml
+- ["EXEC", ["console.log", ["--- High-Speed Pi Calculation (PIPE Edition) ---"]]]
+- ["SET", ["sum", 0]]
+
+- ["PIPE", [
+    ["EXEC", ["math.compile", ["$sum = $sum + ((-1)^$ITEM / (2 * $ITEM + 1))"]]],
+    ["SET", ["compiledMath", "$LAST"]]
+  ]]
+
+- ["DEF", [
+    "ON_QUOTA", 
+    [
+      ["PIPE", [
+        ["EXEC", ["math.multiply", ["$sum", 4]]],
+        ["EXEC", ["console.log", ["🏁 Final Pi: ", "$LAST"]]]
+      ]],
+      ["EXEC", ["console.log", ["🔢 Iterations:", "$ITEM"]]],
+      ["EXEC", ["console.log", ["📊 Usage:", "$USAGE"]]]
+    ]
+  ]]
+
+- ["FOR_EACH", [
+    1000000000, 
+    [
+      ["EXEC", ["$compiledMath.evaluate", ["$VARS"]]]
+    ]
+  ]]

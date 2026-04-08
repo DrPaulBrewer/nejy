@@ -1,0 +1,24 @@
+- ["EXEC", ["console.log", ["--- High-Speed Pi Calculation (YAML) ---"]]]
+- ["SET", ["sum", 0]]
+
+# Pre-compile the math expression to save overhead
+- ["EXEC", ["math.compile", ["$sum = $sum + ((-1)^$ITEM / (2 * $ITEM + 1))"]]]
+- ["SET", ["compiledMath", "$LAST"]]
+
+- ["DEF", [
+    "ON_QUOTA", 
+    [
+      ["EXEC", ["math.multiply", ["$sum", 4]]],
+      ["EXEC", ["console.log", ["🏁 Final Pi:", "$LAST"]]],
+      ["EXEC", ["console.log", ["🔢 Iterations:", "$ITEM"]]],
+      ["EXEC", ["console.log", ["📊 Usage:", "$USAGE"]]]
+    ]
+  ]]
+
+- ["FOR_EACH", [
+    1000000000, 
+    [
+      # Correctly resolve the method of the compiled object stored in $compiledMath
+      ["EXEC", ["$compiledMath.evaluate", ["$VARS"]]]
+    ]
+  ]]

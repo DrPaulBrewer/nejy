@@ -1,0 +1,26 @@
+# health_pipe.yaml
+- ["EXEC", ["console.log", ["--- 🏥 Gathering System Data ---"]]]
+
+- ["PIPE", [
+    ["NEW", ["Date", []]],
+    "$LAST.toISOString",
+    ["SET", ["utcTime", "$LAST"]]
+  ]]
+
+- ["PIPE", [
+    ["EXEC", ["os.hostname", []]],
+    ["SET", ["host", "$LAST"]]
+  ]]
+
+- ["PIPE", [
+    ["EXEC", ["math.evaluate", ["100 - (os.freemem() / os.totalmem() * 100)", "$VARS"]]],
+    ["SET", ["pct", "$LAST"]],
+    ["SET", ["entries", [
+        ["hostname", "$host"],
+        ["memory_usage_pct", "$pct"],
+        ["timestamp_utc", "$utcTime"]
+      ]]],
+    ["EXEC", ["Object.fromEntries", ["$entries"]]],
+    ["EXEC", ["YAML.stringify", ["$LAST"]]],
+    ["EXEC", ["console.log", ["\n📋 Final Health Snapshot:\n", "$LAST"]]]
+  ]]
