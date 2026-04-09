@@ -3,8 +3,14 @@
  * Resource & Security Instrumentation for Node 24
  */
 export default class ResourceMonitor {
-  constructor(quotas) {
-    this.quotas = quotas;
+  constructor(quotas = {}) {
+    this.quotas = {
+      maxCpuMs: Infinity,
+      maxMemoryMb: Infinity,
+      maxFsBytes: Infinity,
+      fetchRules: [],
+      ...quotas
+    };
     this.usage = { cpuMs: 0, fsBytes: 0, memoryMb: 0, fetchCount: 0 };
     this.cpuStart = process.cpuUsage();
     this.isExhausted = false; // Prevents post-exhaustion execution

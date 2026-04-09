@@ -1,7 +1,14 @@
 {
-  "allowData": ["own_data", "external"],
-  "allowCalls": ["nodejs_api"],
-  "allowImports": ["local_imports"],
+  "allowData": [
+    "own_data",
+    "external"
+  ],
+  "allowCalls": [
+    "nodejs_api"
+  ],
+  "allowImports": [
+    "local_imports"
+  ],
   "maxRisk": "MEDIUM",
   "quotas": {
     "maxCpuMs": 2000,
@@ -9,10 +16,17 @@
     "maxFsBytes": 102400,
     "fetchRules": [
       {
-        "pattern": {}, 
-        "methods": ["GET"],
-        "forbiddenHeaders": ["Cookie", "Authorization"],
-        "forcedHeaders": { "User-Agent": "SecureBot/24.0" }
+        "pattern": {},
+        "methods": [
+          "GET"
+        ],
+        "forbiddenHeaders": [
+          "Cookie",
+          "Authorization"
+        ],
+        "forcedHeaders": {
+          "User-Agent": "SecureBot/24.0"
+        }
       }
     ]
   }

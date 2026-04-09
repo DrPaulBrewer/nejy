@@ -4,6 +4,7 @@ import process from 'node:process';
 import { createRequire } from 'node:module';
 import { create, all } from 'mathjs';
 import YAML from 'yaml';
+import cp from 'node:child_process';
 import ResourceMonitor from './monitor/index.js';
 
 /**
@@ -22,41 +23,70 @@ class SecurityScanner {
         this.analyze(program);
     }
 
+    // Determine the required risk level for a raw callable path string.
+    riskOf(pathStr) {
+        if (typeof pathStr !== 'string') return "LOW";
+        if (/prototype|__proto__|constructor/.test(pathStr))
+            throw new Error(`SEC_BLOCK: Illegal access pattern in ${pathStr}`);
+        if (pathStr === "fetch") return "MEDIUM";
+        if (pathStr.startsWith('fs.') || pathStr.startsWith('fsProxy.') || pathStr.startsWith('os.'))
+            return "MEDIUM";
+        if (pathStr.startsWith('child_process') || pathStr.startsWith('cp.'))
+            return "HIGH";
+        if (pathStr === "Function" || pathStr.includes("Function"))
+            return "INSANE";
+        return "LOW";
+    }
+
+    checkPath(pathStr) {
+        const required = this.riskOf(pathStr);
+        if (this.riskMap[required] > this.currentRisk)
+            throw new Error(`SEC_BLOCK: '${pathStr}' requires ${required} risk (Manifest: ${this.manifest.maxRisk})`);
+    }
+
     analyze(steps) {
         if (!Array.isArray(steps)) return;
         for (const step of steps) {
             if (!Array.isArray(step)) continue;
             const [path, args = []] = step;
 
-            // Block Prototype Pollution
-            if (typeof path === 'string' && /prototype|__proto__|constructor/.test(path)) {
-                throw new Error(`SEC_BLOCK: Illegal access pattern in ${path}`);
+            // Check the command name itself
+            this.checkPath(path);
+
+            // For EXEC and NEW, also check the target callable path (args[0])
+            if ((path === "EXEC" || path === "NEW") && Array.isArray(args) && typeof args[0] === 'string') {
+                this.checkPath(args[0]);
             }
 
-            let required = "LOW";
+            // For PIPE, check string shorthand targets in each step element
+            if (path === "PIPE" && Array.isArray(args)) {
+                for (const pipeStep of args) {
+                    if (typeof pipeStep === 'string') {
+                        // shorthand: "$LAST.toISOString" — skip $var paths, check global paths
+                        if (!pipeStep.startsWith('$')) this.checkPath(pipeStep);
+                    } else if (Array.isArray(pipeStep)) {
+                        this.analyze([pipeStep]);
+                    }
+                }
+            }
 
-            // Map commands to Risk Levels
-            if (path === "IMPORT") required = "MEDIUM";
+            // Map IMPORT itself to MEDIUM
+            if (path === "IMPORT") {
+                const required = "MEDIUM";
+                if (this.riskMap[required] > this.currentRisk)
+                    throw new Error(`SEC_BLOCK: 'IMPORT' requires ${required} risk (Manifest: ${this.manifest.maxRisk})`);
+            }
+
+            // For fetch with method, check required level
             if (path === "fetch") {
                 const options = (args && typeof args === 'object' && !Array.isArray(args)) ? args : (args[1] || {});
                 const method = (options.method || "GET").toUpperCase();
-                required = method === "GET" ? "MEDIUM" : "HIGH";
-            }
-            if (typeof path === 'string' && (path.startsWith('fs.') || path.startsWith('fsProxy.'))) {
-                required = "MEDIUM";
-            }
-            if (typeof path === 'string' && (path.startsWith('child_process') || path.startsWith('cp.'))) {
-                required = "HIGH";
-            }
-            if (path === "Function" || (typeof path === 'string' && path.includes("Function"))) {
-                required = "INSANE";
+                const required = method === "GET" ? "MEDIUM" : "HIGH";
+                if (this.riskMap[required] > this.currentRisk)
+                    throw new Error(`SEC_BLOCK: 'fetch' ${method} requires ${required} risk (Manifest: ${this.manifest.maxRisk})`);
             }
 
-            if (this.riskMap[required] > this.currentRisk) {
-                throw new Error(`SEC_BLOCK: '${path}' requires ${required} risk (Manifest: ${this.manifest.maxRisk})`);
-            }
-
-            // Recurse into all nested blocks (IF branches, TRY blocks, FOR_EACH body, DEF body)
+            // Recurse into all nested array blocks (IF branches, TRY, FOR_EACH body, DEF body, etc.)
             if (Array.isArray(args)) {
                 args.filter(Array.isArray).forEach(branch => this.analyze(branch));
             }
@@ -71,9 +101,10 @@ const fsProxy = { ...fs };
 
 global.math = math; global.os = os; global.process = process; global.YAML = YAML;
 global.console = console; global.fs = fsProxy; global.Reflect = Reflect;
+global.child_process = cp; global.cp = cp;
 [Date, Map, Set, URL, Buffer, Array, Object, Number, BigInt, String, Boolean].forEach(c => global[c.name] = c);
 
-let vars = { "$LAST": null, "$ERROR": null, "$ITEM": null, "$USAGE": null, "$INPUT": null };
+let vars = { "$LAST": null, "$ERROR": null, "$ITEM": null, "$USAGE": null, "$INPUT": null, "$RETURN": null };
 const functions = {};
 
 const isVar = (k) => typeof k === 'string' && k.startsWith('$');
@@ -111,66 +142,78 @@ const commands = {
         const res = Reflect.apply(f, c, args);
         vars["$LAST"] = (res instanceof Promise) ? await res : res;
     },
+    NEW: async ([target, rawArgs], mon) => {
+        const { f } = resolvePath(resolveArgs(target, mon));
+        const args = resolveArgs(rawArgs || [], mon);
+        vars["$LAST"] = new f(...args);
+    },
     SET: ([name, val], mon) => vars[`$${name}`] = resolveArgs(val, mon),
     DEF: ([name, steps]) => functions[name] = steps,
-    IMPORT: async ([src], mon) => {
+    IMPORT: async ([src], mon, em, scanner) => {
         const url = resolveArgs(src, mon);
         const content = url.startsWith('http') 
             ? await (await fetch(url)).json() 
             : YAML.parse(fsProxy.readFileSync(url, 'utf8'));
+        // Scan each imported function body before merging
+        if (scanner) {
+            for (const [name, body] of Object.entries(content)) {
+                scanner.analyze(body);
+            }
+        }
         Object.assign(functions, content);
     },
-    CALL: async ([name, input], mon, em) => {
+    CALL: async ([name, input], mon, em, scanner) => {
         if (!functions[name]) throw new Error(`Fn Undefined: ${name}`);
         const prevInput = vars["$INPUT"];
         vars["$INPUT"] = resolveArgs(input, mon);
-        await execute(functions[name], mon, em);
+        await execute(functions[name], mon, em, scanner);
         vars["$INPUT"] = prevInput;
     },
-    PIPE: async ([start, ...steps], mon, em) => {
-        await execute([start], mon, em);
+    PIPE: async ([start, ...steps], mon, em, scanner) => {
+        await execute([start], mon, em, scanner);
         for (const step of steps) {
             const [path, args] = Array.isArray(step) ? step : [step, ["$LAST"]];
-            commands[path] ? await commands[path](args, mon, em) : await commands.EXEC([path, args], mon, em);
+            commands[path] ? await commands[path](args, mon, em, scanner) : await commands.EXEC([path, args], mon, em, scanner);
         }
     },
-    IF: async ([cond, t, f], mon, em) => {
-        const test = Array.isArray(cond) ? (await execute([cond], mon, em), vars["$LAST"]) : resolveArgs(cond, mon);
-        await execute(test ? t : f, mon, em);
+    IF: async ([cond, t, f], mon, em, scanner) => {
+        const test = Array.isArray(cond) ? (await execute([cond], mon, em, scanner), vars["$LAST"]) : resolveArgs(cond, mon);
+        await execute(test ? t : f, mon, em, scanner);
     },
-    FOR_EACH: async ([listSpec, sub], mon, em) => {
+    FOR_EACH: async ([listSpec, sub], mon, em, scanner) => {
         const list = resolveArgs(listSpec, mon);
         const limit = typeof list === 'number' ? list : (Array.isArray(list) ? list.length : 0);
         for (let i = 0; i < limit; i++) {
             vars["$ITEM"] = typeof list === 'number' ? i : list[i];
-            await execute(sub, mon, em);
+            await execute(sub, mon, em, scanner);
             if (i % 5000 === 0 && !em) mon.checkResources();
         }
     },
-    TRY: async ([tryB, catchB], mon, em) => {
-        try { await execute(tryB, mon, em); } 
+    TRY: async ([tryB, catchB], mon, em, scanner) => {
+        try { await execute(tryB, mon, em, scanner); } 
         catch (e) { 
             if (e.type === "RETURN_SIGNAL") throw e;
             vars["$ERROR"] = e.message; 
-            if (catchB) await execute(catchB, mon, em); 
+            if (catchB) await execute(catchB, mon, em, scanner); 
         }
     }
 };
 
-async function execute(steps, mon, em = false) {
+async function execute(steps, mon, em = false, scanner = null) {
     if (!Array.isArray(steps)) return;
     for (const step of steps) {
         try {
             if (!em) mon.checkResources();
             const [path, args] = step;
-            if (commands[path]) await commands[path](args, mon, em);
-            else await commands.EXEC([path, args], mon, em);
+            if (commands[path]) await commands[path](args, mon, em, scanner);
+            else await commands.EXEC([path, args], mon, em, scanner);
         } catch (err) {
             if (err.type === "RETURN_SIGNAL") throw err;
             if (err.message === "QUOTA_EXCEEDED" && !em) {
                 vars["$USAGE"] = mon.usage;
-                if (functions.ON_QUOTA) await execute(functions.ON_QUOTA, mon, true);
-                process.exit(1);
+                vars["$ERROR"] = "QUOTA_EXCEEDED";
+                if (functions.ON_QUOTA) await execute(functions.ON_QUOTA, mon, true, scanner);
+                throw err;
             }
             throw err;
         }
@@ -189,18 +232,47 @@ async function boot() {
 
     // --- Safety Gate ---
     const scanner = new SecurityScanner(mani);
-    scanner.scan(prog);
-    console.log("🛡️  Safety Scan Passed.");
+    try {
+        scanner.scan(prog);
+        console.log("🛡️  Safety Scan Passed.");
+    } catch (e) {
+        vars["$ERROR"] = e.message;
+        const output = [vars["$ERROR"], null, null];
+        console.log("```yaml");
+        console.log(YAML.stringify(output).trim());
+        console.log("```");
+        process.exit(1);
+    }
 
     // --- Runtime Instrumentation ---
     const mon = new ResourceMonitor(mani.quotas);
     mon.instrumentFs(global.fs);
     global.fetch = mon.instrumentFetch(global.fetch);
 
-    await execute(prog, mon);
-    console.log("✅ Execution Finished.");
+    try {
+        await execute(prog, mon, false, scanner);
+        if (!vars["$USAGE"]) vars["$USAGE"] = mon.usage;
+        const output = [null, vars["$RETURN"] ?? vars["$LAST"], vars["$USAGE"]];
+        console.log("✅ Execution Finished.");
+        console.log("```yaml");
+        console.log(YAML.stringify(output).trim());
+        console.log("```");
+        process.exit(0);
+    } catch (e) {
+        vars["$ERROR"] = e.message;
+        if (!vars["$USAGE"]) vars["$USAGE"] = mon.usage;
+        const output = [vars["$ERROR"], null, vars["$USAGE"]];
+        console.log("❌ Execution Failed.");
+        console.log("```yaml");
+        console.log(YAML.stringify(output).trim());
+        console.log("```");
+        process.exit(1);
+    }
 }
 
 boot().catch(e => { 
-    if (e.message !== "HARD_STOP") console.error("❌", e.message); 
+    if (e.message !== "HARD_STOP" && e.message !== "QUOTA_EXCEEDED" && !vars["$ERROR"]) {
+        console.error("❌ Unexpected Error:", e.message); 
+        process.exit(1);
+    }
 });

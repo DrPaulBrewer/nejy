@@ -7,7 +7,7 @@
   ["SET", ["current_user", "$LAST"]],
   [
     "IMPORT", 
-    ["https://githubusercontent.com"]
+    ["./manifest.json"]
   ],
   ["console.log", ["Found user:", "$current_user"]]
 ]
