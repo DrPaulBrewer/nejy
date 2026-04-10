@@ -1,0 +1,13 @@
+entries:
+  - key: math
+    src: import
+    module: mathjs
+    risk: LOW
+    # wildcard mode (no "methods" key): expose entire instance via Proxy
+    # setup configures the mathjs instance before placing in Mods
+    overrides:
+      math.import: HIGH        # extends mathjs scope
+      math.createUnit: MEDIUM  # registers new unit definitions
+    setup:
+      - ["EXEC", ["$MODULE.create", ["$MODULE.all"]]]
+      # $LAST = configured math instance → becomes Mods["math"]

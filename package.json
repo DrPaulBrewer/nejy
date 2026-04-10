@@ -10,7 +10,10 @@
   "type": "module",
   "main": "main.js",
   "scripts": {
-    "test": "node --test tests/integration.test.mjs"
+    "test": "node --test tests/integration.test.mjs",
+    "test:security": "node --test tests/security.test.mjs",
+    "test:buildmods": "node --test tests/buildMods.test.mjs",
+    "test:all": "node --test tests/integration.test.mjs tests/security.test.mjs tests/buildMods.test.mjs"
   },
   "dependencies": {
     "json5": "^2.2.3",

@@ -1,0 +1,30 @@
+entries:
+  - key: fs
+    src: import
+    module: node:fs
+    risk: INSANE
+    # Explicit listing: write/delete operations are HIGH, reads are MEDIUM
+    methods:
+      fs.readFileSync: MEDIUM
+      fs.readdirSync: MEDIUM
+      fs.statSync: MEDIUM
+      fs.lstatSync: MEDIUM
+      fs.existsSync: MEDIUM
+      fs.accessSync: MEDIUM
+      fs.realpathSync: MEDIUM
+      fs.writeFileSync: HIGH
+      fs.appendFileSync: HIGH
+      fs.unlinkSync: HIGH
+      fs.rmdirSync: HIGH
+      fs.rmSync: HIGH
+      fs.mkdirSync: HIGH
+      fs.mkdtempSync: HIGH
+      fs.renameSync: HIGH
+      fs.copyFileSync: HIGH
+      fs.symlinkSync: HIGH
+      fs.linkSync: HIGH
+      fs.truncateSync: HIGH
+      fs.chmodSync: INSANE
+      fs.chownSync: INSANE
+      fs.lchmodSync: INSANE
+      fs.lchownSync: INSANE

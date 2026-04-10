@@ -1,0 +1,4 @@
+# use-process-exit.yaml
+# KNOWN GAP: process.exit is not in the registry and should be blocked at all risk levels.
+# Currently this exits with code 0 before any YAML output is produced (gap!).
+- ["EXEC", ["process.exit", [0]]]

@@ -1,0 +1,92 @@
+entries:
+  # --- Simple safe built-ins (wildcard mode, all LOW risk) ---
+
+  - key: Array
+    src: global
+    risk: LOW
+    # wildcard mode: expose entire Array constructor/namespace via Proxy
+
+  - key: Boolean
+    src: global
+    risk: LOW
+
+  - key: Number
+    src: global
+    risk: LOW
+
+  - key: String
+    src: global
+    risk: LOW
+
+  - key: BigInt
+    src: global
+    risk: LOW
+
+  - key: Date
+    src: global
+    risk: LOW
+
+  - key: Map
+    src: global
+    risk: LOW
+
+  - key: Set
+    src: global
+    risk: LOW
+
+  - key: URL
+    src: global
+    risk: LOW
+
+  # --- Object: base INSANE, carve out safe methods as LOW or HIGH ---
+
+  - key: Object
+    src: global
+    risk: INSANE
+    overrides:
+      Object.keys: LOW
+      Object.values: LOW
+      Object.entries: LOW
+      Object.fromEntries: LOW
+      Object.assign: LOW
+      Object.freeze: LOW
+      Object.isFrozen: LOW
+      Object.seal: LOW
+      Object.isSealed: LOW
+      Object.is: LOW
+      Object.create: LOW
+      Object.hasOwn: LOW
+      Object.getOwnPropertyNames: LOW
+      Object.getOwnPropertyDescriptors: LOW
+      Object.getPrototypeOf: LOW
+      Object.setPrototypeOf: HIGH
+      Object.defineProperty: HIGH
+      Object.defineProperties: HIGH
+
+  # --- Reflect: base INSANE, carve out safe methods ---
+
+  - key: Reflect
+    src: global
+    risk: INSANE
+    overrides:
+      Reflect.get: LOW
+      Reflect.apply: LOW
+      Reflect.has: LOW
+      Reflect.ownKeys: LOW
+      Reflect.getOwnPropertyDescriptor: LOW
+      Reflect.getPrototypeOf: LOW
+      Reflect.isExtensible: LOW
+      Reflect.set: MEDIUM
+      Reflect.deleteProperty: MEDIUM
+      Reflect.defineProperty: HIGH
+      Reflect.setPrototypeOf: HIGH
+      Reflect.construct: HIGH
+
+  # --- Buffer: mostly LOW, allocUnsafe is MEDIUM ---
+
+  - key: Buffer
+    src: global
+    risk: LOW
+    overrides:
+      Buffer.allocUnsafe: MEDIUM
+      Buffer.allocUnsafeSlow: MEDIUM
