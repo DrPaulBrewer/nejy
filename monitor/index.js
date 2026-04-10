@@ -8,10 +8,9 @@ export default class ResourceMonitor {
       maxCpuMs: Infinity,
       maxMemoryMb: Infinity,
       maxFsBytes: Infinity,
-      fetchRules: [],
       ...quotas
     };
-    this.usage = { cpuMs: 0, fsBytes: 0, memoryMb: 0, fetchCount: 0 };
+    this.usage = { cpuMs: 0, fsBytes: 0, memoryMb: 0 };
     this.cpuStart = process.cpuUsage();
     this.isExhausted = false; // Prevents post-exhaustion execution
   }
@@ -49,34 +48,4 @@ export default class ResourceMonitor {
     };
   }
 
-  instrumentFetch(globalFetch) {
-    return async (url, options = {}) => {
-      const method = (options.method || 'GET').toUpperCase();
-      const urlStr = typeof url === 'string' ? url : url.href;
-
-      const rule = this.quotas.fetchRules.find(r => {
-        const pattern = new URLPattern(r.pattern);
-        return pattern.test(urlStr) && r.methods.includes(method);
-      });
-
-      if (!rule) throw new Error(`FETCH_BLOCKED: ${method} ${urlStr}`);
-
-      const requestHeaders = options.headers instanceof Headers 
-        ? Object.fromEntries(options.headers.entries()) 
-        : (options.headers || {});
-
-      if (rule.forbiddenHeaders) {
-        const sentKeys = Object.keys(requestHeaders).map(k => k.toLowerCase());
-        for (const forbidden of rule.forbiddenHeaders) {
-          if (sentKeys.includes(forbidden.toLowerCase())) throw new Error("FORBIDDEN_HEADER");
-        }
-      }
-
-      if (rule.forcedHeaders) Object.assign(requestHeaders, rule.forcedHeaders);
-      options.headers = requestHeaders;
-      this.usage.fetchCount++;
-
-      return globalFetch(url, options);
-    };
-  }
 }

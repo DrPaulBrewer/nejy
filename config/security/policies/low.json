@@ -1,0 +1,8 @@
+{
+  "maxRisk": "LOW",
+  "quotas": {
+    "maxCpuMs": 200,
+    "maxMemoryMb": 256,
+    "maxFsBytes": 0
+  }
+}

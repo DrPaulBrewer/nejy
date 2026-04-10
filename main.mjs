@@ -7,6 +7,7 @@ import YAML from 'yaml';
 import cp from 'node:child_process';
 import ResourceMonitor from './monitor/index.js';
 import { buildMods, loadRegistry, effectiveRisk, pathInRequest } from './lib/buildMods.mjs';
+import { Command } from 'commander';
 
 /**
  * 1. SECURITY SCANNER
@@ -131,13 +132,6 @@ class SecurityScanner {
                     throw new Error(`SEC_BLOCK: 'IMPORT' requires LOW risk (Manifest: ${this.manifest.maxRisk})`);
             }
 
-            // fetch with non-GET methods requires HIGH risk (registry marks fetch as MEDIUM for GET).
-            if (path === "fetch") {
-                const options = (args && typeof args === 'object' && !Array.isArray(args)) ? args : (args[1] || {});
-                const method = (options.method || "GET").toUpperCase();
-                if (method !== "GET" && this.riskMap["HIGH"] > this.currentRisk)
-                    throw new Error(`SEC_BLOCK: 'fetch' ${method} requires HIGH risk (Manifest: ${this.manifest.maxRisk})`);
-            }
 
             // Explicitly recurse into code branches only — NOT into data args.
             // The old generic filter(Array.isArray) treated data arrays (e.g. SET values,
@@ -427,86 +421,106 @@ async function run(steps, ctx, em = false) {
     }
 }
 
-async function boot() {
-    const [progP, maniP] = process.argv.slice(2);
-    if (!progP || !maniP) {
-        console.error("Usage: node main.mjs <program.yaml> <manifest.json>");
+function loadSetup(policyName) {
+    const policyPath = policyName.includes('/') 
+        ? policyName 
+        : `config/security/policies/${policyName.toLowerCase()}.json`;
+
+    if (!fs.existsSync(policyPath)) {
+        console.error(`❌ Policy file not found: ${policyPath}`);
         process.exit(1);
     }
+    const policy = JSON.parse(fs.readFileSync(policyPath, 'utf8'));
 
-    const prog = YAML.parse(fs.readFileSync(progP, 'utf8'));
-    const mani = YAML.parse(fs.readFileSync(maniP, 'utf8'));
-
-    // --- Determine registry files (used by both scanner and buildMods) ---
-    const registryFiles = Array.isArray(mani.registry)
-        ? mani.registry.map(name =>
-            name.includes('/') ? name : `config/security/registry/${name}.yaml`)
-        : DEFAULT_REGISTRY;
-
-    const registryEntries = loadRegistry(registryFiles);
-
-    // --- Safety Gate ---
-    // Scanner now uses registry entries instead of a hardcoded blacklist.
-    const scanner = new SecurityScanner(mani, registryEntries);
-    let scannedProg = prog;
-
-    try {
-        scannedProg = scanner.scan(prog) ?? prog;
-        console.log("🛡️  Safety Scan Passed.");
-    } catch (e) {
-        const output = [e.message, null, null];
-        console.log("```yaml");
-        console.log(YAML.stringify(output).trim());
-        console.log("```");
-        process.exit(1);
-    }
-
-    // --- Build capability Mods ---
-    const mods = await buildMods(registryEntries, mani.maxRisk ?? 'LOW', scanner.requestList);
-
-    // Instrument the capabilities that need resource tracking.
-    // These mutate the already-built mods object in place.
-    const mon = new ResourceMonitor(mani.quotas);
-    if (mods.fs)    mon.instrumentFs(mods.fs);
-    if (mods.fetch !== undefined) {
-        // Replace the Proxy with a properly monitored fetch implementation.
-        mods.fetch = mon.instrumentFetch(globalThis.fetch);
-    }
-
-    const ctx = {
-        mods,
-        vars: {
-            "$LAST": null, "$ERROR": null, "$ITEM": null,
-            "$USAGE": null, "$INPUT": null, "$RETURN": null
-        },
-        functions: {},
-        mon,
-        scanner,
-    };
-
-    try {
-        await run(scannedProg, ctx, false);
-        if (!ctx.vars["$USAGE"]) ctx.vars["$USAGE"] = ctx.mon.usage;
-        const output = [null, ctx.vars["$RETURN"] ?? ctx.vars["$LAST"], ctx.vars["$USAGE"]];
-        console.log("✅ Execution Finished.");
-        console.log("```yaml");
-        console.log(YAML.stringify(output).trim());
-        console.log("```");
-        process.exit(0);
-    } catch (e) {
-        if (!ctx.vars["$USAGE"]) ctx.vars["$USAGE"] = ctx.mon.usage;
-        const output = [e.message, null, ctx.vars["$USAGE"]];
-        console.log("❌ Execution Failed.");
-        console.log("```yaml");
-        console.log(YAML.stringify(output).trim());
-        console.log("```");
-        process.exit(1);
-    }
+    const registryEntries = loadRegistry(DEFAULT_REGISTRY);
+    const scanner = new SecurityScanner(policy, registryEntries);
+    return { policy, registryEntries, scanner };
 }
 
-boot().catch(e => {
-    if (e.message !== "HARD_STOP" && e.message !== "QUOTA_EXCEEDED") {
-        console.error("❌ Unexpected Error:", e.message);
-        process.exit(1);
-    }
-});
+function processOutput(errorMsg, result, usage) {
+    console.log(errorMsg ? "❌ Execution Failed." : "✅ Execution Finished.");
+    console.log("```yaml");
+    console.log(YAML.stringify([errorMsg, result, usage]).trim());
+    console.log("```");
+}
+
+const program = new Command();
+
+program
+    .name('nejy')
+    .description('Nejy Runtime: Sandboxed JSON/YAML Interpreter')
+    .version('0.51.0');
+
+program.command('scan')
+    .description('Statically analyze a program without executing it')
+    .argument('<file>', 'Path to the .json or .yaml program')
+    .option('-p, --policy <policy>', 'Policy level to enforce (LOW, MEDIUM, HIGH)', 'LOW')
+    .action((file, options) => {
+        const prog = YAML.parse(fs.readFileSync(file, 'utf8'));
+        const { scanner } = loadSetup(options.policy);
+        
+        try {
+            scanner.scan(prog);
+            console.log("🛡️  Safety Scan Passed.");
+            process.exit(0);
+        } catch (e) {
+            console.error(`❌ ${e.message}`);
+            process.exit(1);
+        }
+    });
+
+program.command('run')
+    .description('Scan and execute a nejy program')
+    .argument('<file>', 'Path to the .json or .yaml program')
+    .option('-p, --policy <policy>', 'Policy level to enforce (LOW, MEDIUM, HIGH)', 'LOW')
+    .action(async (file, options) => {
+        const prog = YAML.parse(fs.readFileSync(file, 'utf8'));
+        const { policy, registryEntries, scanner } = loadSetup(options.policy);
+
+        let scannedProg = prog;
+        try {
+            scannedProg = scanner.scan(prog) ?? prog;
+        } catch (e) {
+            processOutput(e.message, null, null);
+            process.exit(1);
+        }
+
+        const mods = await buildMods(registryEntries, policy.maxRisk ?? 'LOW', scanner.requestList);
+        const mon = new ResourceMonitor(policy.quotas);
+        
+        if (mods.fs) mon.instrumentFs(mods.fs);
+        if (mods.fetch !== undefined) {
+             // Only instrument fetch if global fetch is available.
+             // Our secureFetch wrapper handles the headers/methods automatically.
+             if (globalThis.fetch) {
+                  // We can optionally attach network bandwidth counting here, 
+                  // but monitor no longer intercepts the rules.
+             }
+        }
+
+        const ctx = {
+            mods,
+            vars: { "$LAST": null, "$ERROR": null, "$ITEM": null, "$USAGE": null, "$INPUT": null, "$RETURN": null },
+            functions: {},
+            mon,
+            scanner,
+        };
+
+        try {
+            await run(scannedProg, ctx, false);
+            if (!ctx.vars["$USAGE"]) ctx.vars["$USAGE"] = ctx.mon.usage;
+            processOutput(null, ctx.vars["$RETURN"] ?? ctx.vars["$LAST"], ctx.vars["$USAGE"]);
+            process.exit(0);
+        } catch (e) {
+            if (e.message === "HARD_STOP" || e.message === "QUOTA_EXCEEDED") {
+                console.error(`❌ Fatal Error: ${e.message}`);
+                processOutput(e.message, null, ctx.vars["$USAGE"] || ctx.mon.usage);
+                process.exit(1);
+            }
+            if (!ctx.vars["$USAGE"]) ctx.vars["$USAGE"] = ctx.mon.usage;
+            processOutput(e.message, null, ctx.vars["$USAGE"]);
+            process.exit(1);
+        }
+    });
+
+program.parse(process.argv);

@@ -21,8 +21,9 @@ export async function runNejy(code, policy, { timeout = 10000 } = {}) {
     let stderr = '';
     let killed = false;
 
+    const policyName = policy.split('/').pop().replace('-risk.json','').replace('-net.json','').toUpperCase();
     const proc = exec(
-      `node main.mjs "${code}" "${policy}"`,
+      `node main.mjs run "${code}" --policy="${policyName}"`,
       { shell: '/bin/bash', timeout },
       (err, out, err2) => {
         if (err && err.killed) killed = true;

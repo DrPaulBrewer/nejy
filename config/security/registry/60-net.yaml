@@ -1,10 +1,21 @@
 entries:
   - key: fetch
-    src: global
+    src: import
+    module: ./secureFetch.mjs
     risk: MEDIUM
-    # wildcard mode: entire fetch function is MEDIUM
-    # POST/PUT/DELETE enforcement is done separately in the scanner/executor
-
+    setup:
+      - ["EXEC", ["$MODULE", [
+          [
+            {
+              "pattern": {},
+              "methods": ["GET"],
+              "forbiddenHeaders": ["Cookie", "Authorization"],
+              "forcedHeaders": {
+                "User-Agent": "SecureBot/24.0"
+              }
+            }
+          ]
+        ]]]
   - key: child_process
     src: import
     module: node:child_process

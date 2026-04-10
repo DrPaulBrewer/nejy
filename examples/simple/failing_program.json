@@ -1,6 +1,6 @@
 [
   ["console.log", ["Attempting unauthorized shell execution..."]],
   ["TO", ["current_user", ["child_process.execSync", ["whoami"]]]],
-  ["IMPORT", ["./manifest.json"]],
+  ["IMPORT", ["./config/security/policies/low.json"]],
   ["console.log", ["Found user:", "$current_user"]]
 ]

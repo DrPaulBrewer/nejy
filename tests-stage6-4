@@ -1,0 +1,53 @@
+
+> nejy@0.51.0 test:all
+> node --test tests/integration.test.mjs tests/security.test.mjs tests/buildMods.test.mjs tests/context-isolation.test.mjs tests/request.test.mjs
+
+[32m✔ LOW: math is present and functional [90m(609.482401ms)[39m[39m
+[32m✔ LOW: math.import is blocked (HIGH > LOW) [90m(3.248125ms)[39m[39m
+[32m✔ LOW: console.log is present and callable [90m(2.025446ms)[39m[39m
+[32m✔ LOW: YAML.parse and YAML.stringify are present [90m(4.617669ms)[39m[39m
+[32m✔ LOW: Object.keys is present [90m(2.357736ms)[39m[39m
+[32m✔ LOW: Object.setPrototypeOf is blocked (HIGH > LOW) [90m(1.466457ms)[39m[39m
+[32m✔ LOW: Object.defineProperty is blocked (HIGH > LOW) [90m(1.662348ms)[39m[39m
+[32m✔ LOW: fs is not present (all fs methods are MEDIUM or higher) [90m(1.010007ms)[39m[39m
+[32m✔ LOW: os is not present (all os methods are MEDIUM or higher) [90m(1.486173ms)[39m[39m
+[32m✔ LOW: child_process is not present (all methods are HIGH or higher) [90m(1.613327ms)[39m[39m
+[32m✔ LOW: eval is not in Mods (not in registry) [90m(2.485728ms)[39m[39m
+[32m✔ LOW: process is not in Mods (90-process.yaml not loaded) [90m(1.595708ms)[39m[39m
+[32m✔ MEDIUM: fs is present with read methods only [90m(1.72385ms)[39m[39m
+[32m✔ MEDIUM: fs.writeFileSync is not present (HIGH > MEDIUM) [90m(1.466594ms)[39m[39m
+[32m✔ MEDIUM: fs.unlinkSync is not present (HIGH > MEDIUM) [90m(1.03229ms)[39m[39m
+[32m✔ MEDIUM: os is present with hostname and other methods [90m(0.956376ms)[39m[39m
+[32m✔ MEDIUM: os.networkInterfaces is not present (HIGH > MEDIUM) [90m(0.933107ms)[39m[39m
+[32m✔ MEDIUM: child_process is still not present (HIGH > MEDIUM) [90m(1.234744ms)[39m[39m
+[32m✔ MEDIUM: Object.setPrototypeOf still blocked (HIGH > MEDIUM) [90m(1.017889ms)[39m[39m
+[32m✔ MEDIUM: eval and process still not in Mods [90m(1.000536ms)[39m[39m
+[32m✔ HIGH: fs.writeFileSync is present [90m(1.165607ms)[39m[39m
+[32m✔ HIGH: fs.chmodSync is not present (INSANE > HIGH) [90m(1.66561ms)[39m[39m
+[32m✔ HIGH: child_process is present with exec methods [90m(1.688465ms)[39m[39m
+[32m✔ HIGH: child_process.fork is not present (INSANE > HIGH) [90m(1.537378ms)[39m[39m
+[32m✔ HIGH: Object.setPrototypeOf is now accessible [90m(1.712518ms)[39m[39m
+[32m✔ HIGH: eval and process still not in Mods (not in any loaded registry) [90m(1.752049ms)[39m[39m
+[32m✔ SETUP: math instance is created by setup (not the raw module) [90m(26.131843ms)[39m[39m
+[32m✔ SETUP: $MODULE does not leak into Mods or appear as a key [90m(2.039283ms)[39m[39m
+[32m✔ ISO-01: $LAST from one run does not bleed into a second run [90m(1424.765836ms)[39m[39m
+[32m✔ ISO-02: $ERROR from a failing run does not persist into the next run [90m(1135.543307ms)[39m[39m
+[32m✔ ISO-03: DEF'd functions from one run are not visible in a second run [90m(1253.944903ms)[39m[39m
+[32m✔ CTX-01: math.evaluate still works after run() refactor [90m(623.916567ms)[39m[39m
+[32m✔ CTX-02: fs.readFileSync still blocked at LOW after run() refactor [90m(577.547954ms)[39m[39m
+[32m✔ CTX-03: fs.readFileSync still works at MEDIUM after run() refactor [90m(760.681462ms)[39m[39m
+[32m✔ CTX-04: passing_program still succeeds after run() refactor [90m(870.830916ms)[39m[39m
+[32m✔ CTX-05: failing_program still fails at LOW after run() refactor [90m(913.20211ms)[39m[39m
+[32m✔ nejy examples/os/health_report.yaml config/security/manifests/low-risk.json (expected ok: false) [90m(718.20683ms)[39m[39m
+[32m✔ nejy examples/os/health_report.yaml config/security/manifests/medium-net.json (expected ok: true) [90m(575.851324ms)[39m[39m
+[32m✔ nejy examples/os/health_report.yaml config/security/manifests/high-net.json (expected ok: true) [90m(568.399995ms)[39m[39m
+[32m✔ nejy examples/os/health_pipe.yaml config/security/manifests/low-risk.json (expected ok: false) [90m(565.844665ms)[39m[39m
+[32m✔ nejy examples/os/health_pipe.yaml config/security/manifests/medium-net.json (expected ok: true) [90m(643.028482ms)[39m[39m
+[32m✔ nejy examples/os/health_pipe.yaml config/security/manifests/high-net.json (expected ok: true) [90m(569.217048ms)[39m[39m
+[32m✔ nejy examples/simple/failing_program.json config/security/manifests/low-risk.json (expected ok: false) [90m(631.404147ms)[39m[39m
+[32m✔ nejy examples/simple/failing_program.json config/security/manifests/medium-net.json (expected ok: false) [90m(672.105203ms)[39m[39m
+[32m✔ nejy examples/simple/failing_program.json config/security/manifests/high-net.json (expected ok: true) [90m(563.952951ms)[39m[39m
+[32m✔ nejy examples/simple/passing_program.json config/security/manifests/low-risk.json (expected ok: true) [90m(797.833703ms)[39m[39m
+[32m✔ nejy examples/simple/passing_program.json config/security/manifests/medium-net.json (expected ok: true) [90m(999.772386ms)[39m[39m
+[32m✔ nejy examples/simple/passing_program.json config/security/manifests/high-net.json (expected ok: true) [90m(840.547114ms)[39m[39m
+[32m✔ nejy examples/cpu_intensive/pi.json config/security/manifests/low-risk.json (expected ok: i-timeout) [90m(835.432576ms)[39m[39m

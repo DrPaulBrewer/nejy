@@ -37,32 +37,32 @@ const testCases = [
   { code: "examples/simple/passing_program.json", policy: "config/security/manifests/high-net.json", ok: true },
 
   // examples/cpu_intensive/pi.json (LOW risk commands, but high CPU usage)
-  { code: "examples/cpu_intensive/pi.json", policy: "config/security/manifests/low-risk.json", ok: e_timeout },
+  { code: "examples/cpu_intensive/pi.json", policy: "config/security/manifests/low-risk.json", ok: i_timeout },
   { code: "examples/cpu_intensive/pi.json", policy: "config/security/manifests/medium-net.json", ok: i_timeout }, // Hits quota
   { code: "examples/cpu_intensive/pi.json", policy: "config/security/manifests/high-net.json", ok: i_timeout }, // Hits quota
 
   // examples/cpu_intensive/pi-math.json (LOW risk)
-  { code: "examples/cpu_intensive/pi-math.json", policy: "config/security/manifests/low-risk.json", ok: e_timeout },
+  { code: "examples/cpu_intensive/pi-math.json", policy: "config/security/manifests/low-risk.json", ok: i_timeout },
   { code: "examples/cpu_intensive/pi-math.json", policy: "config/security/manifests/medium-net.json", ok: i_timeout }, 
   { code: "examples/cpu_intensive/pi-math.json", policy: "config/security/manifests/high-net.json", ok: i_timeout },
 
   // examples/cpu_intensive/pi.yaml (LOW risk)
-  { code: "examples/cpu_intensive/pi.yaml", policy: "config/security/manifests/low-risk.json", ok: e_timeout },
+  { code: "examples/cpu_intensive/pi.yaml", policy: "config/security/manifests/low-risk.json", ok: i_timeout },
   { code: "examples/cpu_intensive/pi.yaml", policy: "config/security/manifests/medium-net.json", ok: i_timeout },
   { code: "examples/cpu_intensive/pi.yaml", policy: "config/security/manifests/high-net.json", ok: i_timeout },
 
   // examples/cpu_intensive/pi-compiled.json (LOW risk)
-  { code: "examples/cpu_intensive/pi-compiled.json", policy: "config/security/manifests/low-risk.json", ok: e_timeout },
+  { code: "examples/cpu_intensive/pi-compiled.json", policy: "config/security/manifests/low-risk.json", ok: i_timeout },
   { code: "examples/cpu_intensive/pi-compiled.json", policy: "config/security/manifests/medium-net.json", ok: i_timeout },
   { code: "examples/cpu_intensive/pi-compiled.json", policy: "config/security/manifests/high-net.json", ok: i_timeout },
 
   // examples/cpu_intensive/pi-pipe.yaml (LOW risk)
-  { code: "examples/cpu_intensive/pi-pipe.yaml", policy: "config/security/manifests/low-risk.json", ok: e_timeout },
+  { code: "examples/cpu_intensive/pi-pipe.yaml", policy: "config/security/manifests/low-risk.json", ok: i_timeout },
   { code: "examples/cpu_intensive/pi-pipe.yaml", policy: "config/security/manifests/medium-net.json", ok: i_timeout },
   { code: "examples/cpu_intensive/pi-pipe.yaml", policy: "config/security/manifests/high-net.json", ok: i_timeout },
 
   // examples/cpu_intensive/pi-turbo-nilakantha.yaml (LOW risk)
-  { code: "examples/cpu_intensive/pi-turbo-nilakantha.yaml", policy: "config/security/manifests/low-risk.json", ok: e_timeout },
+  { code: "examples/cpu_intensive/pi-turbo-nilakantha.yaml", policy: "config/security/manifests/low-risk.json", ok: i_timeout },
   { code: "examples/cpu_intensive/pi-turbo-nilakantha.yaml", policy: "config/security/manifests/medium-net.json", ok: i_timeout },
   { code: "examples/cpu_intensive/pi-turbo-nilakantha.yaml", policy: "config/security/manifests/high-net.json", ok: i_timeout }
 ];
@@ -71,7 +71,8 @@ testCases.forEach(({ code, policy, ok }) => {
   test(`nejy ${code} ${policy} (expected ok: ${ok})`, { timeout: 15000 }, async () => {
     let stdout, stderr, killed = false, exitCode = 0;
     try {
-      const result = await execAsync(`node main.mjs "${code}" "${policy}"`, { 
+      const policyName = policy.split('/').pop().replace('-risk.json','').replace('-net.json','').toUpperCase();
+      const result = await execAsync(`node main.mjs run "${code}" --policy="${policyName}"`, { 
         shell: '/bin/bash',
         timeout: 10000 
       });
