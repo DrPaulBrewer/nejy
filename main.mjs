@@ -6,6 +6,7 @@ import { create, all } from 'mathjs';
 import YAML from 'yaml';
 import cp from 'node:child_process';
 import ResourceMonitor from './monitor/index.js';
+import { buildMods } from './lib/buildMods.mjs';
 
 /**
  * 1. SECURITY SCANNER
@@ -93,15 +94,29 @@ class SecurityScanner {
     }
 }
 
-// --- Interpreter Setup ---
+// --- Interpreter Setup (module-level globals kept for internal use) ---
 const require = createRequire(import.meta.url);
 const math = create(all);
 const fsProxy = { ...fs };
 
-global.math = math; global.os = os; global.process = process; global.YAML = YAML;
+// Programs no longer access these via global — they use ctx.mods.
+// Kept for internal interpreter use (IMPORT reads files, monitor reads process).
+global.math = math; global.os = os; global.YAML = YAML;
 global.console = console; global.fs = fsProxy; global.Reflect = Reflect;
 global.child_process = cp; global.cp = cp;
 [Date, Map, Set, URL, Buffer, Array, Object, Number, BigInt, String, Boolean].forEach(c => global[c.name] = c);
+
+// Default registry files loaded when manifest doesn’t specify its own.
+// 90-process.yaml is intentionally excluded from all default manifests.
+const DEFAULT_REGISTRY = [
+    'config/security/registry/00-builtins.yaml',
+    'config/security/registry/10-math.yaml',
+    'config/security/registry/20-console.yaml',
+    'config/security/registry/30-yaml-module.yaml',
+    'config/security/registry/40-os.yaml',
+    'config/security/registry/50-fs.yaml',
+    'config/security/registry/60-net.yaml',
+];
 
 // ---------------------------------------------------------------------------
 // Context-aware helpers
@@ -139,7 +154,10 @@ const commands = {
         const { f, c } = resolvePath(resolveArgs(target, ctx), ctx);
         const args = resolveArgs(rawArgs || [], ctx).map(a => {
             if (a === "$VARS") return new Proxy(ctx.vars, {
-                get: (t, p) => t[p] ?? ctx.mods[p],   // Stage 3: ctx.mods replaces global
+                // Falls back to ctx.mods so programs can pass $VARS as a scope object
+                // (e.g., math.evaluate(expr, $VARS) where expr references mods like os.freemem).
+                // This is safe: ctx.mods is already risk-filtered; it is NOT raw global.
+                get: (t, p) => t[p] ?? ctx.mods[p],
                 set: (t, p, v) => { t[p] = v; return true; },
                 has: (t, p) => p in t || p in ctx.mods
             });
@@ -261,15 +279,26 @@ async function boot() {
         process.exit(1);
     }
 
-    // --- Build execution context ---
-    // NOTE (Stage 2): ctx.mods = global preserves existing behaviour.
-    // Stage 3 will replace this with the buildMods() result.
+    // --- Build capability Mods ---
+    // Manifest may specify a custom registry list; otherwise use the default.
+    const registryFiles = Array.isArray(mani.registry)
+        ? mani.registry.map(name =>
+            name.includes('/') ? name : `config/security/registry/${name}.yaml`)
+        : DEFAULT_REGISTRY;
+
+    const mods = await buildMods(registryFiles, mani.maxRisk ?? 'LOW');
+
+    // Instrument the capabilities that need resource tracking.
+    // These mutate the already-built mods object in place.
     const mon = new ResourceMonitor(mani.quotas);
-    mon.instrumentFs(global.fs);
-    global.fetch = mon.instrumentFetch(global.fetch);
+    if (mods.fs)    mon.instrumentFs(mods.fs);
+    if (mods.fetch !== undefined) {
+        // Replace the Proxy with a properly monitored fetch implementation.
+        mods.fetch = mon.instrumentFetch(globalThis.fetch);
+    }
 
     const ctx = {
-        mods: global,
+        mods,
         vars: {
             "$LAST": null, "$ERROR": null, "$ITEM": null,
             "$USAGE": null, "$INPUT": null, "$RETURN": null

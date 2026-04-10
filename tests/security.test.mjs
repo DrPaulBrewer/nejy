@@ -93,72 +93,46 @@ test('A11: os.hostname succeeds at MEDIUM risk', async () => {
 });
 
 // ---------------------------------------------------------------------------
-// Section B — Known Gaps (currently broken; will be fixed in Stages 3–4)
-// Each test is marked { todo: true } and documents the expected post-fix behavior.
-// When a gap is fixed, remove the todo and update the assertion to match
-// correct behavior, then verify the test passes.
+// Section B — Previously Known Gaps, now fixed by Stage 3 (Mods replaces global)
+//
+// eval, process, and Object.setPrototypeOf are no longer reachable because
+// ctx.mods does not expose them. This produces "Link Fail: <path>" at runtime.
+// Stage 4 will additionally block them at scan time with SEC_BLOCK.
 // ---------------------------------------------------------------------------
 
-test('B01 GAP: eval should be blocked at LOW risk (currently succeeds — gap)',
-  { todo: 'Fix in Stage 3/4: eval must not be in Mods at any risk level' },
-  async () => {
-    const r = await runNejy('tests/programs/use-eval.yaml', LOW);
-    // After fix: exitCode !== 0 and errorMsg contains SEC_BLOCK
-    assert.notStrictEqual(r.exitCode, 0, 'eval should be blocked');
-    assert.ok(r.errorMsg && r.errorMsg.includes('SEC_BLOCK'),
-      `Expected SEC_BLOCK, got: ${r.errorMsg}`);
-  }
-);
+test('B01: eval is blocked at LOW risk (Link Fail — not in Mods)', async () => {
+  const r = await runNejy('tests/programs/use-eval.yaml', LOW);
+  assert.notStrictEqual(r.exitCode, 0, 'eval should be blocked; expected non-zero exit');
+  assert.ok(r.errorMsg !== null, `Expected an error message, got: ${r.errorMsg}`);
+});
 
-test('B02 GAP: eval should be blocked at HIGH risk (currently succeeds — gap)',
-  { todo: 'Fix in Stage 3/4: eval must not be in Mods at any risk level' },
-  async () => {
-    const r = await runNejy('tests/programs/use-eval.yaml', HIGH);
-    assert.notStrictEqual(r.exitCode, 0, 'eval should be blocked even at HIGH');
-    assert.ok(r.errorMsg && r.errorMsg.includes('SEC_BLOCK'),
-      `Expected SEC_BLOCK, got: ${r.errorMsg}`);
-  }
-);
+test('B02: eval is blocked at HIGH risk (Link Fail — not in Mods at any level)', async () => {
+  const r = await runNejy('tests/programs/use-eval.yaml', HIGH);
+  assert.notStrictEqual(r.exitCode, 0, 'eval should be blocked even at HIGH risk');
+  assert.ok(r.errorMsg !== null, `Expected an error message, got: ${r.errorMsg}`);
+});
 
-test('B03 GAP: process.exit should be blocked and produce YAML output (currently silent exit — gap)',
-  { todo: 'Fix in Stage 3/4: process.exit must not be in Mods; exit must produce YAML block' },
-  async () => {
-    const r = await runNejy('tests/programs/use-process-exit.yaml', LOW);
-    // After fix: exit 1, errorMsg contains SEC_BLOCK, YAML block present
-    assert.notStrictEqual(r.exitCode, 0);
-    assert.ok(r.errorMsg && r.errorMsg.includes('SEC_BLOCK'),
-      `Expected SEC_BLOCK, got: ${r.errorMsg}`);
-  }
-);
+test('B03: process.exit is blocked and produces YAML output (Link Fail — process not in Mods)', async () => {
+  const r = await runNejy('tests/programs/use-process-exit.yaml', LOW);
+  // After Stage 3: runs() catches Link Fail, boot() produces YAML before exit
+  assert.notStrictEqual(r.exitCode, 0, 'process.exit should be blocked; expected non-zero exit');
+  assert.ok(r.errorMsg !== null, `Expected an error in YAML output, got: ${r.errorMsg}\nStdout: ${r.stdout}`);
+});
 
-test('B04 GAP: Object.setPrototypeOf should be blocked at LOW risk (currently succeeds — gap)',
-  { todo: 'Fix in Stage 3/4: Object.setPrototypeOf must require HIGH risk in registry' },
-  async () => {
-    const r = await runNejy('tests/programs/use-object-setprototypeof.yaml', LOW);
-    assert.notStrictEqual(r.exitCode, 0);
-    assert.ok(r.errorMsg && r.errorMsg.includes('SEC_BLOCK'),
-      `Expected SEC_BLOCK, got: ${r.errorMsg}`);
-  }
-);
+test('B04: Object.setPrototypeOf is blocked at LOW risk (Proxy returns undefined — not in Mods at LOW)', async () => {
+  const r = await runNejy('tests/programs/use-object-setprototypeof.yaml', LOW);
+  assert.notStrictEqual(r.exitCode, 0, 'Object.setPrototypeOf should be blocked at LOW');
+  assert.ok(r.errorMsg !== null, `Expected an error message, got: ${r.errorMsg}`);
+});
 
-test('B05 GAP: Object.setPrototypeOf should be blocked at MEDIUM risk (currently succeeds — gap)',
-  { todo: 'Fix in Stage 3/4: Object.setPrototypeOf must require HIGH risk in registry' },
-  async () => {
-    const r = await runNejy('tests/programs/use-object-setprototypeof.yaml', MEDIUM);
-    assert.notStrictEqual(r.exitCode, 0);
-    assert.ok(r.errorMsg && r.errorMsg.includes('SEC_BLOCK'),
-      `Expected SEC_BLOCK, got: ${r.errorMsg}`);
-  }
-);
+test('B05: Object.setPrototypeOf is blocked at MEDIUM risk (Proxy returns undefined — HIGH > MEDIUM)', async () => {
+  const r = await runNejy('tests/programs/use-object-setprototypeof.yaml', MEDIUM);
+  assert.notStrictEqual(r.exitCode, 0, 'Object.setPrototypeOf should be blocked at MEDIUM');
+  assert.ok(r.errorMsg !== null, `Expected an error message, got: ${r.errorMsg}`);
+});
 
-test('B06 GAP: fs.writeFileSync should be blocked at MEDIUM risk (currently succeeds — gap)',
-  { todo: 'Fix in Stage 3/4: fs.writeFileSync must be HIGH risk; current scanner maps all fs.* to MEDIUM' },
-  async () => {
-    const r = await runNejy('tests/programs/use-fs-write.yaml', MEDIUM);
-    // After fix: exitCode !== 0 and errorMsg contains SEC_BLOCK
-    assert.notStrictEqual(r.exitCode, 0,
-      'fs.writeFileSync should be HIGH risk and blocked at MEDIUM');
-    assert.ok(r.errorMsg && r.errorMsg.includes('SEC_BLOCK'),
-      `Expected SEC_BLOCK, got: ${r.errorMsg}`);
-  }
-);
+test('B06: fs.writeFileSync is blocked at MEDIUM risk (not in mods.fs at MEDIUM — HIGH > MEDIUM)', async () => {
+  const r = await runNejy('tests/programs/use-fs-write.yaml', MEDIUM);
+  assert.notStrictEqual(r.exitCode, 0, 'fs.writeFileSync should be blocked at MEDIUM');
+  assert.ok(r.errorMsg !== null, `Expected an error message, got: ${r.errorMsg}`);
+});

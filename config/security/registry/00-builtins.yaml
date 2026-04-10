@@ -1,6 +1,11 @@
 entries:
   # --- Simple safe built-ins (wildcard mode, all LOW risk) ---
 
+  - key: Math
+    src: global
+    risk: LOW
+    # wildcard mode: all Math methods are LOW risk (Math.max, Math.floor, Math.random, etc.)
+
   - key: Array
     src: global
     risk: LOW
