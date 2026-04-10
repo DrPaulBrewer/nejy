@@ -15,7 +15,7 @@ import YAML from 'yaml';
  * @param {number} opts.timeout - milliseconds before forcibly killing the process (default 10000)
  * @returns {Promise<{exitCode, killed, stdout, stderr, errorMsg, returnVal, usage}>}
  */
-export async function runNejy(code, policy, { timeout = 10000 } = {}) {
+export async function runNejy(code, policy, { timeout = 10000, env = {} } = {}) {
   return new Promise((resolve) => {
     let stdout = '';
     let stderr = '';
@@ -24,7 +24,7 @@ export async function runNejy(code, policy, { timeout = 10000 } = {}) {
     const policyName = policy.split('/').pop().replace('-risk.json','').replace('-net.json','').toUpperCase();
     const proc = exec(
       `node main.mjs run "${code}" --policy="${policyName}"`,
-      { shell: '/bin/bash', timeout },
+      { shell: '/bin/bash', timeout, env: { ...process.env, ...env } },
       (err, out, err2) => {
         if (err && err.killed) killed = true;
         stdout = out || '';

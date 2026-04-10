@@ -421,7 +421,7 @@ async function run(steps, ctx, em = false) {
     }
 }
 
-function loadSetup(policyName) {
+function loadSetup(policyName, filename = "unknown") {
     const policyPath = policyName.includes('/') 
         ? policyName 
         : `config/security/policies/${policyName.toLowerCase()}.json`;
@@ -431,6 +431,26 @@ function loadSetup(policyName) {
         process.exit(1);
     }
     const policy = JSON.parse(fs.readFileSync(policyPath, 'utf8'));
+
+    // ENV and Bounding Logic
+    const riskMap = { "LOW": 0, "MEDIUM": 1, "HIGH": 2, "INSANE": 3 };
+    const maxRisk = policy.maxRisk || "LOW";
+
+    if (process.env.NEJY_MAX_RISK) {
+        const envVal = process.env.NEJY_MAX_RISK;
+        if (riskMap[envVal] === undefined) {
+            console.error(`❌ Invalid NEJY_MAX_RISK environment variable: ${envVal}`);
+            process.exit(1);
+        }
+        if (riskMap[maxRisk] > riskMap[envVal]) {
+            console.error(`❌ Boot Failure: Requested policy maxRisk (${maxRisk}) exceeds environment limit NEJY_MAX_RISK (${envVal})`);
+            process.exit(1);
+        }
+    }
+
+    // No minRisk check.
+
+    console.error(`nejy v0.51.0 | effectiveMaxRisk: ${maxRisk} | program: ${filename.split('/').pop()} | manifest: ${policyPath.split('/').pop()}`);
 
     const registryEntries = loadRegistry(DEFAULT_REGISTRY);
     const scanner = new SecurityScanner(policy, registryEntries);
@@ -457,7 +477,7 @@ program.command('scan')
     .option('-p, --policy <policy>', 'Policy level to enforce (LOW, MEDIUM, HIGH)', 'LOW')
     .action((file, options) => {
         const prog = YAML.parse(fs.readFileSync(file, 'utf8'));
-        const { scanner } = loadSetup(options.policy);
+        const { scanner } = loadSetup(options.policy, file);
         
         try {
             scanner.scan(prog);
@@ -475,7 +495,7 @@ program.command('run')
     .option('-p, --policy <policy>', 'Policy level to enforce (LOW, MEDIUM, HIGH)', 'LOW')
     .action(async (file, options) => {
         const prog = YAML.parse(fs.readFileSync(file, 'utf8'));
-        const { policy, registryEntries, scanner } = loadSetup(options.policy);
+        const { policy, registryEntries, scanner } = loadSetup(options.policy, file);
 
         let scannedProg = prog;
         try {
