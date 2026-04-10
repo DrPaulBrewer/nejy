@@ -61,31 +61,12 @@ entries:
       Object.is: LOW
       Object.create: LOW
       Object.hasOwn: LOW
-      Object.getOwnPropertyNames: LOW
-      Object.getOwnPropertyDescriptors: LOW
-      Object.getPrototypeOf: LOW
-      Object.setPrototypeOf: HIGH
-      Object.defineProperty: HIGH
-      Object.defineProperties: HIGH
 
-  # --- Reflect: base INSANE, carve out safe methods ---
+  # --- Reflect: base INSANE, completely restricted to block dynamic property hijacking ---
 
   - key: Reflect
     src: global
     risk: INSANE
-    overrides:
-      Reflect.get: LOW
-      Reflect.apply: LOW
-      Reflect.has: LOW
-      Reflect.ownKeys: LOW
-      Reflect.getOwnPropertyDescriptor: LOW
-      Reflect.getPrototypeOf: LOW
-      Reflect.isExtensible: LOW
-      Reflect.set: MEDIUM
-      Reflect.deleteProperty: MEDIUM
-      Reflect.defineProperty: HIGH
-      Reflect.setPrototypeOf: HIGH
-      Reflect.construct: HIGH
 
   # --- Buffer: mostly LOW, allocUnsafe is MEDIUM ---
 
