@@ -8,10 +8,10 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { buildMods } from '../lib/buildMods.mjs';
+import { buildMods, loadRegistry } from '../lib/buildMods.mjs';
 
 const REG = 'config/security/registry';
-const ALL = [
+const ALL_FILES = [
   `${REG}/00-builtins.yaml`,
   `${REG}/10-math.yaml`,
   `${REG}/20-console.yaml`,
@@ -21,6 +21,8 @@ const ALL = [
   `${REG}/60-net.yaml`,
   // 90-process.yaml is intentionally NOT loaded
 ];
+
+const ALL = loadRegistry(ALL_FILES);
 
 // ---------------------------------------------------------------------------
 // LOW risk
@@ -220,7 +222,7 @@ test('HIGH: eval and process still not in Mods (not in any loaded registry)', as
 // ---------------------------------------------------------------------------
 
 test('SETUP: math instance is created by setup (not the raw module)', async () => {
-  const mods = await buildMods([`${REG}/10-math.yaml`], 'LOW');
+  const mods = await buildMods(loadRegistry([`${REG}/10-math.yaml`]), 'LOW');
   assert.ok(mods.math, 'math should be present');
   // The setup runs create(all), so math.evaluate should be directly on the instance
   assert.strictEqual(typeof mods.math.evaluate, 'function');

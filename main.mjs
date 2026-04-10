@@ -6,7 +6,7 @@ import { create, all } from 'mathjs';
 import YAML from 'yaml';
 import cp from 'node:child_process';
 import ResourceMonitor from './monitor/index.js';
-import { buildMods, loadRegistry, effectiveRisk } from './lib/buildMods.mjs';
+import { buildMods, loadRegistry, effectiveRisk, pathInRequest } from './lib/buildMods.mjs';
 
 /**
  * 1. SECURITY SCANNER
@@ -20,20 +20,6 @@ import { buildMods, loadRegistry, effectiveRisk } from './lib/buildMods.mjs';
 const KNOWN_COMMANDS = new Set([
     "EXEC", "NEW", "SET", "DEF", "CALL", "PIPE", "IF", "FOR_EACH", "TRY", "IMPORT", "TO", "REQUEST"
 ]);
-
-/**
- * Returns true if pathStr is covered by the requestList.
- *   "math"        covers "math.evaluate", "math.compile", … (module-prefix match)
- *   "console.log" covers "console.log" only           (exact-method match)
- * requestList === null means no REQUEST was declared → everything is allowed.
- */
-function pathInRequest(pathStr, requestList) {
-    if (!requestList) return true; // no REQUEST → full manifest capabilities
-    return requestList.some(req =>
-        pathStr === req ||              // exact method match
-        pathStr.startsWith(req + '.')   // module-prefix match
-    );
-}
 
 class SecurityScanner {
     /**
@@ -49,7 +35,7 @@ class SecurityScanner {
     }
 
     scan(program) {
-        if (this.currentRisk >= 3) return; // INSANE skips scan
+        if (this.currentRisk >= 3) return program; // INSANE skips scan
 
         this.requestList = null;
         let steps = program;
@@ -71,6 +57,7 @@ class SecurityScanner {
         }
 
         this.analyze(steps);
+        return steps;
     }
 
     /**
@@ -138,10 +125,10 @@ class SecurityScanner {
                 }
             }
 
-            // IMPORT requires at least MEDIUM risk.
+            // IMPORT requires at least LOW risk.
             if (path === "IMPORT") {
-                if (this.riskMap["MEDIUM"] > this.currentRisk)
-                    throw new Error(`SEC_BLOCK: 'IMPORT' requires MEDIUM risk (Manifest: ${this.manifest.maxRisk})`);
+                if (this.riskMap["LOW"] > this.currentRisk)
+                    throw new Error(`SEC_BLOCK: 'IMPORT' requires LOW risk (Manifest: ${this.manifest.maxRisk})`);
             }
 
             // fetch with non-GET methods requires HIGH risk (registry marks fetch as MEDIUM for GET).
@@ -306,6 +293,16 @@ const commands = {
                 : null;
             if (libScanner) libScanner.requestList = libRequestList;
 
+            // Build library specific mods using parent's maxRisk ceiling, but narrowed by libRequestList
+            // Note: ctx.scanner.manifest and registryEntries are used (available if scanner is active).
+            const libMods = ctx.scanner
+                ? await buildMods(
+                    ctx.scanner.registryEntries,
+                    ctx.scanner.manifest.maxRisk ?? 'LOW',
+                    libRequestList
+                  )
+                : ctx.mods;
+
             // Extract only DEF commands from the library (libraries export functions, not side effects).
             for (const step of libBody) {
                 if (!Array.isArray(step)) continue;
@@ -313,7 +310,7 @@ const commands = {
                 if (cmd === 'DEF') {
                     const [name, body] = Array.isArray(args) ? args : [args, []];
                     if (libScanner && Array.isArray(body)) libScanner.analyze(body);
-                    if (name && body) ctx.functions[name] = body;
+                    if (name && body) ctx.functions[name] = { body, mods: libMods };
                 }
                 // Non-DEF top-level steps in libraries are silently ignored.
                 // (Libraries only export function definitions.)
@@ -326,15 +323,28 @@ const commands = {
                     ctx.scanner.analyze(body);
                 }
             }
-            Object.assign(ctx.functions, content);
+            for (const [name, body] of Object.entries(content)) {
+                ctx.functions[name] = { body, mods: ctx.mods };
+            }
         }
     },
     CALL: async ([name, input], ctx, em) => {
         if (!ctx.functions[name]) throw new Error(`Fn Undefined: ${name}`);
+        const fnEntry = ctx.functions[name];
+        // Handle both new-style { body, mods } and old-style plain arrays
+        const body = Array.isArray(fnEntry) ? fnEntry : fnEntry.body;
+        const fnMods = Array.isArray(fnEntry) ? ctx.mods : fnEntry.mods;
+
         const prevInput = ctx.vars["$INPUT"];
+        const prevMods = ctx.mods;
+
         ctx.vars["$INPUT"] = resolveArgs(input, ctx);
-        await run(ctx.functions[name], ctx, em);
+        ctx.mods = fnMods;
+
+        await run(body, ctx, em);
+
         ctx.vars["$INPUT"] = prevInput;
+        ctx.mods = prevMods;
     },
     PIPE: async ([start, ...steps], ctx, em) => {
         await run([start], ctx, em);
@@ -438,8 +448,10 @@ async function boot() {
     // --- Safety Gate ---
     // Scanner now uses registry entries instead of a hardcoded blacklist.
     const scanner = new SecurityScanner(mani, registryEntries);
+    let scannedProg = prog;
+
     try {
-        scanner.scan(prog);
+        scannedProg = scanner.scan(prog) ?? prog;
         console.log("🛡️  Safety Scan Passed.");
     } catch (e) {
         const output = [e.message, null, null];
@@ -450,7 +462,7 @@ async function boot() {
     }
 
     // --- Build capability Mods ---
-    const mods = await buildMods(registryFiles, mani.maxRisk ?? 'LOW');
+    const mods = await buildMods(registryEntries, mani.maxRisk ?? 'LOW', scanner.requestList);
 
     // Instrument the capabilities that need resource tracking.
     // These mutate the already-built mods object in place.
@@ -473,7 +485,7 @@ async function boot() {
     };
 
     try {
-        await run(prog, ctx, false);
+        await run(scannedProg, ctx, false);
         if (!ctx.vars["$USAGE"]) ctx.vars["$USAGE"] = ctx.mon.usage;
         const output = [null, ctx.vars["$RETURN"] ?? ctx.vars["$LAST"], ctx.vars["$USAGE"]];
         console.log("✅ Execution Finished.");
