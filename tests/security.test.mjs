@@ -93,46 +93,51 @@ test('A11: os.hostname succeeds at MEDIUM risk', async () => {
 });
 
 // ---------------------------------------------------------------------------
-// Section B — Previously Known Gaps, now fixed by Stage 3 (Mods replaces global)
+// Section B — Fixed by Stage 3 (Mods), hardened by Stage 4 (Scanner registry)
 //
-// eval, process, and Object.setPrototypeOf are no longer reachable because
-// ctx.mods does not expose them. This produces "Link Fail: <path>" at runtime.
-// Stage 4 will additionally block them at scan time with SEC_BLOCK.
+// Stage 3: these were blocked at runtime ("Link Fail: ...").
+// Stage 4: these are now blocked at SCAN TIME ("SEC_BLOCK: ...").
+// Tests verify the tighter SEC_BLOCK guarantee.
 // ---------------------------------------------------------------------------
 
-test('B01: eval is blocked at LOW risk (Link Fail — not in Mods)', async () => {
+test('B01: eval is blocked at LOW risk (SEC_BLOCK at scan time)', async () => {
   const r = await runNejy('tests/programs/use-eval.yaml', LOW);
-  assert.notStrictEqual(r.exitCode, 0, 'eval should be blocked; expected non-zero exit');
-  assert.ok(r.errorMsg !== null, `Expected an error message, got: ${r.errorMsg}`);
+  assert.notStrictEqual(r.exitCode, 0, 'eval should be blocked');
+  assert.ok(r.errorMsg && r.errorMsg.includes('SEC_BLOCK'),
+    `Expected SEC_BLOCK, got: ${r.errorMsg}`);
 });
 
-test('B02: eval is blocked at HIGH risk (Link Fail — not in Mods at any level)', async () => {
+test('B02: eval is blocked at HIGH risk (SEC_BLOCK at scan time — not in registry at any level)', async () => {
   const r = await runNejy('tests/programs/use-eval.yaml', HIGH);
   assert.notStrictEqual(r.exitCode, 0, 'eval should be blocked even at HIGH risk');
-  assert.ok(r.errorMsg !== null, `Expected an error message, got: ${r.errorMsg}`);
+  assert.ok(r.errorMsg && r.errorMsg.includes('SEC_BLOCK'),
+    `Expected SEC_BLOCK, got: ${r.errorMsg}`);
 });
 
-test('B03: process.exit is blocked and produces YAML output (Link Fail — process not in Mods)', async () => {
+test('B03: process.exit is blocked and produces YAML output (SEC_BLOCK at scan time)', async () => {
   const r = await runNejy('tests/programs/use-process-exit.yaml', LOW);
-  // After Stage 3: runs() catches Link Fail, boot() produces YAML before exit
-  assert.notStrictEqual(r.exitCode, 0, 'process.exit should be blocked; expected non-zero exit');
-  assert.ok(r.errorMsg !== null, `Expected an error in YAML output, got: ${r.errorMsg}\nStdout: ${r.stdout}`);
+  assert.notStrictEqual(r.exitCode, 0, 'process.exit should be blocked');
+  assert.ok(r.errorMsg && r.errorMsg.includes('SEC_BLOCK'),
+    `Expected SEC_BLOCK in YAML output, got: ${r.errorMsg}`);
 });
 
-test('B04: Object.setPrototypeOf is blocked at LOW risk (Proxy returns undefined — not in Mods at LOW)', async () => {
+test('B04: Object.setPrototypeOf is blocked at LOW risk (SEC_BLOCK — HIGH > LOW)', async () => {
   const r = await runNejy('tests/programs/use-object-setprototypeof.yaml', LOW);
   assert.notStrictEqual(r.exitCode, 0, 'Object.setPrototypeOf should be blocked at LOW');
-  assert.ok(r.errorMsg !== null, `Expected an error message, got: ${r.errorMsg}`);
+  assert.ok(r.errorMsg && r.errorMsg.includes('SEC_BLOCK'),
+    `Expected SEC_BLOCK, got: ${r.errorMsg}`);
 });
 
-test('B05: Object.setPrototypeOf is blocked at MEDIUM risk (Proxy returns undefined — HIGH > MEDIUM)', async () => {
+test('B05: Object.setPrototypeOf is blocked at MEDIUM risk (SEC_BLOCK — HIGH > MEDIUM)', async () => {
   const r = await runNejy('tests/programs/use-object-setprototypeof.yaml', MEDIUM);
   assert.notStrictEqual(r.exitCode, 0, 'Object.setPrototypeOf should be blocked at MEDIUM');
-  assert.ok(r.errorMsg !== null, `Expected an error message, got: ${r.errorMsg}`);
+  assert.ok(r.errorMsg && r.errorMsg.includes('SEC_BLOCK'),
+    `Expected SEC_BLOCK, got: ${r.errorMsg}`);
 });
 
-test('B06: fs.writeFileSync is blocked at MEDIUM risk (not in mods.fs at MEDIUM — HIGH > MEDIUM)', async () => {
+test('B06: fs.writeFileSync is blocked at MEDIUM risk (SEC_BLOCK — HIGH > MEDIUM)', async () => {
   const r = await runNejy('tests/programs/use-fs-write.yaml', MEDIUM);
   assert.notStrictEqual(r.exitCode, 0, 'fs.writeFileSync should be blocked at MEDIUM');
-  assert.ok(r.errorMsg !== null, `Expected an error message, got: ${r.errorMsg}`);
+  assert.ok(r.errorMsg && r.errorMsg.includes('SEC_BLOCK'),
+    `Expected SEC_BLOCK, got: ${r.errorMsg}`);
 });

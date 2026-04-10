@@ -6,17 +6,31 @@ import { create, all } from 'mathjs';
 import YAML from 'yaml';
 import cp from 'node:child_process';
 import ResourceMonitor from './monitor/index.js';
-import { buildMods } from './lib/buildMods.mjs';
+import { buildMods, loadRegistry, effectiveRisk } from './lib/buildMods.mjs';
 
 /**
  * 1. SECURITY SCANNER
- * Performs static analysis before execution to enforce maxRisk limits.
+ * Performs static analysis before execution.
+ * Stage 4: riskOf() now delegates to effectiveRisk() against the loaded registry.
+ * Unknown paths return null, which is treated as INSANE (blocked by default).
  */
+
+// Interpreter-level commands are exempt from registry risk checks.
+// Programs cannot inject new command names; these are hard-coded in the interpreter.
+const KNOWN_COMMANDS = new Set([
+    "EXEC", "NEW", "SET", "DEF", "CALL", "PIPE", "IF", "FOR_EACH", "TRY", "IMPORT", "TO"
+]);
+
 class SecurityScanner {
-    constructor(manifest) {
+    /**
+     * @param {object}   manifest        - parsed manifest JSON (has maxRisk)
+     * @param {object[]} registryEntries - flat array of parsed registry entries from loadRegistry()
+     */
+    constructor(manifest, registryEntries = []) {
         this.manifest = manifest;
         this.riskMap = { "LOW": 0, "MEDIUM": 1, "HIGH": 2, "INSANE": 3 };
         this.currentRisk = this.riskMap[manifest.maxRisk || "LOW"];
+        this.registryEntries = registryEntries;
     }
 
     scan(program) {
@@ -24,22 +38,25 @@ class SecurityScanner {
         this.analyze(program);
     }
 
-    // Determine the required risk level for a raw callable path string.
+    /**
+     * Return the required risk level for a callable path string.
+     * Delegates to effectiveRisk() against the registry.
+     * $-prefixed paths (variable method calls) can’t be verified statically — treated as LOW.
+     * Paths missing from the registry are treated as INSANE (unknown = blocked by default).
+     */
     riskOf(pathStr) {
         if (typeof pathStr !== 'string') return "LOW";
-        if (/prototype|__proto__|constructor/.test(pathStr))
-            throw new Error(`SEC_BLOCK: Illegal access pattern in ${pathStr}`);
-        if (pathStr === "fetch") return "MEDIUM";
-        if (pathStr.startsWith('fs.') || pathStr.startsWith('fsProxy.') || pathStr.startsWith('os.'))
-            return "MEDIUM";
-        if (pathStr.startsWith('child_process') || pathStr.startsWith('cp.'))
-            return "HIGH";
-        if (pathStr === "Function" || pathStr.includes("Function"))
-            return "INSANE";
-        return "LOW";
+        // Variable method calls (e.g. $dateObj.toISOString) — can’t verify statically.
+        if (pathStr.startsWith('$')) return "LOW";
+        // Registry lookup; null = not in registry = INSANE.
+        return effectiveRisk(pathStr, this.registryEntries) ?? "INSANE";
     }
 
     checkPath(pathStr) {
+        if (typeof pathStr !== 'string') return;
+        // Prototype-chain attacks are always blocked (also caught by resolvePath at runtime).
+        if (/prototype|__proto__|constructor/.test(pathStr))
+            throw new Error(`SEC_BLOCK: Illegal access pattern in '${pathStr}'`);
         const required = this.riskOf(pathStr);
         if (this.riskMap[required] > this.currentRisk)
             throw new Error(`SEC_BLOCK: '${pathStr}' requires ${required} risk (Manifest: ${this.manifest.maxRisk})`);
@@ -51,15 +68,18 @@ class SecurityScanner {
             if (!Array.isArray(step)) continue;
             const [path, args = []] = step;
 
-            // Check the command name itself
-            this.checkPath(path);
+            // Named interpreter commands are exempt from registry risk checks.
+            // Non-command paths are shorthand callables (e.g. ["math.evaluate", [...]]).
+            if (!KNOWN_COMMANDS.has(path)) {
+                this.checkPath(path);
+            }
 
-            // For EXEC and NEW, also check the target callable path (args[0])
+            // For EXEC and NEW, check the explicit target callable path.
             if ((path === "EXEC" || path === "NEW") && Array.isArray(args) && typeof args[0] === 'string') {
                 this.checkPath(args[0]);
             }
 
-            // For PIPE, check string shorthand targets in each step element
+            // For PIPE, check string-shorthand step targets.
             if (path === "PIPE" && Array.isArray(args)) {
                 for (const pipeStep of args) {
                     if (typeof pipeStep === 'string') {
@@ -70,26 +90,45 @@ class SecurityScanner {
                 }
             }
 
-            // Map IMPORT itself to MEDIUM
+            // IMPORT requires at least MEDIUM risk.
             if (path === "IMPORT") {
-                const required = "MEDIUM";
-                if (this.riskMap[required] > this.currentRisk)
-                    throw new Error(`SEC_BLOCK: 'IMPORT' requires ${required} risk (Manifest: ${this.manifest.maxRisk})`);
+                if (this.riskMap["MEDIUM"] > this.currentRisk)
+                    throw new Error(`SEC_BLOCK: 'IMPORT' requires MEDIUM risk (Manifest: ${this.manifest.maxRisk})`);
             }
 
-            // For fetch with method, check required level
+            // fetch with non-GET methods requires HIGH risk (registry marks fetch as MEDIUM for GET).
             if (path === "fetch") {
                 const options = (args && typeof args === 'object' && !Array.isArray(args)) ? args : (args[1] || {});
                 const method = (options.method || "GET").toUpperCase();
-                const required = method === "GET" ? "MEDIUM" : "HIGH";
-                if (this.riskMap[required] > this.currentRisk)
-                    throw new Error(`SEC_BLOCK: 'fetch' ${method} requires ${required} risk (Manifest: ${this.manifest.maxRisk})`);
+                if (method !== "GET" && this.riskMap["HIGH"] > this.currentRisk)
+                    throw new Error(`SEC_BLOCK: 'fetch' ${method} requires HIGH risk (Manifest: ${this.manifest.maxRisk})`);
             }
 
-            // Recurse into all nested array blocks (IF branches, TRY, FOR_EACH body, DEF body, etc.)
-            if (Array.isArray(args)) {
-                args.filter(Array.isArray).forEach(branch => this.analyze(branch));
+            // Explicitly recurse into code branches only — NOT into data args.
+            // The old generic filter(Array.isArray) treated data arrays (e.g. SET values,
+            // EXEC arg arrays) as code, causing false positives under strict registry checking.
+            if (path === 'IF') {
+                // cond may be an inline step array; t and f are step-arrays (branches)
+                if (Array.isArray(args[0])) this.analyze([args[0]]);  // cond as inline step
+                if (Array.isArray(args[1])) this.analyze(args[1]);    // true branch
+                if (Array.isArray(args[2])) this.analyze(args[2]);    // false branch
+            } else if (path === 'FOR_EACH') {
+                if (Array.isArray(args[1])) this.analyze(args[1]);    // loop body
+            } else if (path === 'TRY') {
+                if (Array.isArray(args[0])) this.analyze(args[0]);    // try block
+                if (Array.isArray(args[1])) this.analyze(args[1]);    // catch block
+            } else if (path === 'DEF') {
+                if (Array.isArray(args[1])) this.analyze(args[1]);    // function body
+            } else if (path === 'TO') {
+                // Same disambiguation as the interpreter: string-first = single step, else block
+                const code = args[1];
+                if (Array.isArray(code)) {
+                    if (typeof code[0] === 'string') this.analyze([code]);  // single step
+                    else this.analyze(code);                                // block of steps
+                }
             }
+            // PIPE: already fully handled in the explicit PIPE block above.
+            // EXEC, NEW, SET, CALL, IMPORT: args are data — no branch recursion.
         }
     }
 }
@@ -224,7 +263,25 @@ const commands = {
             ctx.vars["$ERROR"] = e.message;
             if (catchB) await run(catchB, ctx, em);
         }
-    }
+    },
+    /**
+     * TO — run a code block, capture $LAST into a named variable.
+     * Syntax: ["TO", ["varname", code]]   ← same 2-element convention as every other command
+     *
+     * code can be:
+     *   - a single step:    ["callable", args]
+     *   - a block of steps: [["step1", ...], ["step2", ...]]
+     *
+     * Disambiguation: if code[0] is a string it is a single step (wrap it);
+     * if code[0] is an array it is already a block. This is structurally
+     * unambiguous — single steps always begin with a string path, blocks
+     * always begin with a step array.
+     */
+    TO: async ([varname, code], ctx, em) => {
+        const block = (Array.isArray(code) && typeof code[0] === 'string') ? [code] : code;
+        await run(block, ctx, em);
+        ctx.vars[`$${varname}`] = ctx.vars["$LAST"];
+    },
 };
 
 /**
@@ -266,8 +323,17 @@ async function boot() {
     const prog = YAML.parse(fs.readFileSync(progP, 'utf8'));
     const mani = YAML.parse(fs.readFileSync(maniP, 'utf8'));
 
+    // --- Determine registry files (used by both scanner and buildMods) ---
+    const registryFiles = Array.isArray(mani.registry)
+        ? mani.registry.map(name =>
+            name.includes('/') ? name : `config/security/registry/${name}.yaml`)
+        : DEFAULT_REGISTRY;
+
+    const registryEntries = loadRegistry(registryFiles);
+
     // --- Safety Gate ---
-    const scanner = new SecurityScanner(mani);
+    // Scanner now uses registry entries instead of a hardcoded blacklist.
+    const scanner = new SecurityScanner(mani, registryEntries);
     try {
         scanner.scan(prog);
         console.log("🛡️  Safety Scan Passed.");
@@ -280,12 +346,6 @@ async function boot() {
     }
 
     // --- Build capability Mods ---
-    // Manifest may specify a custom registry list; otherwise use the default.
-    const registryFiles = Array.isArray(mani.registry)
-        ? mani.registry.map(name =>
-            name.includes('/') ? name : `config/security/registry/${name}.yaml`)
-        : DEFAULT_REGISTRY;
-
     const mods = await buildMods(registryFiles, mani.maxRisk ?? 'LOW');
 
     // Instrument the capabilities that need resource tracking.

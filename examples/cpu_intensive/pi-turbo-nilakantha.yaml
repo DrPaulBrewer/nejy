@@ -5,29 +5,24 @@
 - ["EXEC", ["math.config", [{ number: "BigNumber", precision: 64 }]]]
 
 # 2. Initialize sum as BigNumber 3
-- ["EXEC", ["math.bignumber", [3]]]
-- ["SET", ["sum", "$LAST"]]
+- ["TO", ["sum", ["math.bignumber", [3]]]]
 
-# 3. Pre-compile using semicolons to create a single executable object
-- ["PIPE", [
-    ["EXEC", ["math.compile", ["n = $ITEM + 1; d = (n*2) * (n*2+1) * (n*2+2); $sum = $sum + ((-1)^$ITEM * (4 / d))"]]],
-    ["SET", ["turboMath", "$LAST"]]
-  ]]
+# 3. Pre-compile the Nilakantha expression
+- ["TO", ["turboMath", ["math.compile", ["n = $ITEM + 1; d = (n*2) * (n*2+1) * (n*2+2); $sum = $sum + ((-1)^$ITEM * (4 / d))"]]]]
 
 - ["DEF", [
-    "ON_QUOTA", 
+    "ON_QUOTA",
     [
       ["EXEC", ["console.log", ["🏁 Turbo Pi Result:"]]],
       ["EXEC", ["console.log", ["$sum"]]],
       ["EXEC", ["console.log", ["🔢 Iterations:", "$ITEM"]]],
-      ["EXEC", ["console.log", ["📊 Usage:", "$USAGE"]]]
+      ["EXEC", ["console.log", ["📊 Usage:",      "$USAGE"]]]
     ]
   ]]
 
 - ["FOR_EACH", [
-    1000000, 
+    1000000,
     [
-      # Now $turboMath is a single object, so .evaluate exists
       ["EXEC", ["$turboMath.evaluate", ["$VARS"]]]
     ]
   ]]
