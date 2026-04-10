@@ -62,7 +62,6 @@ class SecurityScanner {
             if (path === "PIPE" && Array.isArray(args)) {
                 for (const pipeStep of args) {
                     if (typeof pipeStep === 'string') {
-                        // shorthand: "$LAST.toISOString" — skip $var paths, check global paths
                         if (!pipeStep.startsWith('$')) this.checkPath(pipeStep);
                     } else if (Array.isArray(pipeStep)) {
                         this.analyze([pipeStep]);
@@ -104,21 +103,28 @@ global.console = console; global.fs = fsProxy; global.Reflect = Reflect;
 global.child_process = cp; global.cp = cp;
 [Date, Map, Set, URL, Buffer, Array, Object, Number, BigInt, String, Boolean].forEach(c => global[c.name] = c);
 
-let vars = { "$LAST": null, "$ERROR": null, "$ITEM": null, "$USAGE": null, "$INPUT": null, "$RETURN": null };
-const functions = {};
+// ---------------------------------------------------------------------------
+// Context-aware helpers
+// ctx = { mods, vars, functions, mon, scanner }
+//
+// NOTE (Stage 2): ctx.mods is currently set to `global` so that resolvePath
+// behaviour is unchanged. Stage 3 will replace global with the buildMods result.
+// ---------------------------------------------------------------------------
 
 const isVar = (k) => typeof k === 'string' && k.startsWith('$');
-const resolveArgs = (args, mon) => {
-    if (isVar(args)) return vars[args] ?? args;
-    if (Array.isArray(args)) return args.map(a => resolveArgs(a, mon));
-    if (args && typeof args === 'object') return Object.fromEntries(Object.entries(args).map(([k, v]) => [k, resolveArgs(v, mon)]));
+
+const resolveArgs = (args, ctx) => {
+    if (isVar(args)) return ctx.vars[args] ?? args;
+    if (Array.isArray(args)) return args.map(a => resolveArgs(a, ctx));
+    if (args && typeof args === 'object') return Object.fromEntries(Object.entries(args).map(([k, v]) => [k, resolveArgs(v, ctx)]));
     return args;
 };
 
-const resolvePath = (path) => {
+const resolvePath = (path, ctx) => {
     const pStr = String(path);
     const parts = pStr.split('.');
-    let fn = pStr.startsWith('$') ? vars : global;
+    // $-prefixed paths walk ctx.vars; others walk ctx.mods (currently global)
+    let fn = pStr.startsWith('$') ? ctx.vars : ctx.mods;
     let context = fn;
     for (const p of parts) {
         if (["prototype", "__proto__", "constructor"].includes(p)) throw new Error("SEC_BLOCK");
@@ -129,90 +135,102 @@ const resolvePath = (path) => {
 };
 
 const commands = {
-    EXEC: async ([target, rawArgs], mon) => {
-        const { f, c } = resolvePath(resolveArgs(target, mon));
-        const args = resolveArgs(rawArgs || [], mon).map(a => {
-            if (a === "$VARS") return new Proxy(vars, {
-                get: (t, p) => t[p] ?? global[p],
+    EXEC: async ([target, rawArgs], ctx, em) => {
+        const { f, c } = resolvePath(resolveArgs(target, ctx), ctx);
+        const args = resolveArgs(rawArgs || [], ctx).map(a => {
+            if (a === "$VARS") return new Proxy(ctx.vars, {
+                get: (t, p) => t[p] ?? ctx.mods[p],   // Stage 3: ctx.mods replaces global
                 set: (t, p, v) => { t[p] = v; return true; },
-                has: (t, p) => p in t || p in global
+                has: (t, p) => p in t || p in ctx.mods
             });
             return a;
         });
         const res = Reflect.apply(f, c, args);
-        vars["$LAST"] = (res instanceof Promise) ? await res : res;
+        ctx.vars["$LAST"] = (res instanceof Promise) ? await res : res;
     },
-    NEW: async ([target, rawArgs], mon) => {
-        const { f } = resolvePath(resolveArgs(target, mon));
-        const args = resolveArgs(rawArgs || [], mon);
-        vars["$LAST"] = new f(...args);
+    NEW: async ([target, rawArgs], ctx) => {
+        const { f } = resolvePath(resolveArgs(target, ctx), ctx);
+        const args = resolveArgs(rawArgs || [], ctx);
+        ctx.vars["$LAST"] = new f(...args);
     },
-    SET: ([name, val], mon) => vars[`$${name}`] = resolveArgs(val, mon),
-    DEF: ([name, steps]) => functions[name] = steps,
-    IMPORT: async ([src], mon, em, scanner) => {
-        const url = resolveArgs(src, mon);
-        const content = url.startsWith('http') 
-            ? await (await fetch(url)).json() 
+    SET: ([name, val], ctx) => { ctx.vars[`$${name}`] = resolveArgs(val, ctx); },
+    DEF: ([name, steps], ctx) => { ctx.functions[name] = steps; },
+    IMPORT: async ([src], ctx) => {
+        const url = resolveArgs(src, ctx);
+        const content = url.startsWith('http')
+            ? await (await fetch(url)).json()
             : YAML.parse(fsProxy.readFileSync(url, 'utf8'));
         // Scan each imported function body before merging
-        if (scanner) {
+        if (ctx.scanner) {
             for (const [name, body] of Object.entries(content)) {
-                scanner.analyze(body);
+                ctx.scanner.analyze(body);
             }
         }
-        Object.assign(functions, content);
+        Object.assign(ctx.functions, content);
     },
-    CALL: async ([name, input], mon, em, scanner) => {
-        if (!functions[name]) throw new Error(`Fn Undefined: ${name}`);
-        const prevInput = vars["$INPUT"];
-        vars["$INPUT"] = resolveArgs(input, mon);
-        await execute(functions[name], mon, em, scanner);
-        vars["$INPUT"] = prevInput;
+    CALL: async ([name, input], ctx, em) => {
+        if (!ctx.functions[name]) throw new Error(`Fn Undefined: ${name}`);
+        const prevInput = ctx.vars["$INPUT"];
+        ctx.vars["$INPUT"] = resolveArgs(input, ctx);
+        await run(ctx.functions[name], ctx, em);
+        ctx.vars["$INPUT"] = prevInput;
     },
-    PIPE: async ([start, ...steps], mon, em, scanner) => {
-        await execute([start], mon, em, scanner);
+    PIPE: async ([start, ...steps], ctx, em) => {
+        await run([start], ctx, em);
         for (const step of steps) {
             const [path, args] = Array.isArray(step) ? step : [step, ["$LAST"]];
-            commands[path] ? await commands[path](args, mon, em, scanner) : await commands.EXEC([path, args], mon, em, scanner);
+            commands[path]
+                ? await commands[path](args, ctx, em)
+                : await commands.EXEC([path, args], ctx, em);
         }
     },
-    IF: async ([cond, t, f], mon, em, scanner) => {
-        const test = Array.isArray(cond) ? (await execute([cond], mon, em, scanner), vars["$LAST"]) : resolveArgs(cond, mon);
-        await execute(test ? t : f, mon, em, scanner);
+    IF: async ([cond, t, f], ctx, em) => {
+        const test = Array.isArray(cond)
+            ? (await run([cond], ctx, em), ctx.vars["$LAST"])
+            : resolveArgs(cond, ctx);
+        await run(test ? t : f, ctx, em);
     },
-    FOR_EACH: async ([listSpec, sub], mon, em, scanner) => {
-        const list = resolveArgs(listSpec, mon);
+    FOR_EACH: async ([listSpec, sub], ctx, em) => {
+        const list = resolveArgs(listSpec, ctx);
         const limit = typeof list === 'number' ? list : (Array.isArray(list) ? list.length : 0);
         for (let i = 0; i < limit; i++) {
-            vars["$ITEM"] = typeof list === 'number' ? i : list[i];
-            await execute(sub, mon, em, scanner);
-            if (i % 5000 === 0 && !em) mon.checkResources();
+            ctx.vars["$ITEM"] = typeof list === 'number' ? i : list[i];
+            await run(sub, ctx, em);
+            if (i % 5000 === 0 && !em) ctx.mon.checkResources();
         }
     },
-    TRY: async ([tryB, catchB], mon, em, scanner) => {
-        try { await execute(tryB, mon, em, scanner); } 
-        catch (e) { 
+    TRY: async ([tryB, catchB], ctx, em) => {
+        try { await run(tryB, ctx, em); }
+        catch (e) {
             if (e.type === "RETURN_SIGNAL") throw e;
-            vars["$ERROR"] = e.message; 
-            if (catchB) await execute(catchB, mon, em, scanner); 
+            ctx.vars["$ERROR"] = e.message;
+            if (catchB) await run(catchB, ctx, em);
         }
     }
 };
 
-async function execute(steps, mon, em = false, scanner = null) {
+/**
+ * Core execution primitive. All mutable state lives in ctx.
+ * Does NOT scan — scanning must be done before calling run().
+ *
+ * @param {Array}   steps - program steps to execute
+ * @param {object}  ctx   - { mods, vars, functions, mon, scanner }
+ * @param {boolean} em    - emergency mode (skip resource checks)
+ */
+async function run(steps, ctx, em = false) {
     if (!Array.isArray(steps)) return;
     for (const step of steps) {
         try {
-            if (!em) mon.checkResources();
+            if (!em) ctx.mon.checkResources();
             const [path, args] = step;
-            if (commands[path]) await commands[path](args, mon, em, scanner);
-            else await commands.EXEC([path, args], mon, em, scanner);
+            if (commands[path]) await commands[path](args, ctx, em);
+            else await commands.EXEC([path, args], ctx, em);
         } catch (err) {
             if (err.type === "RETURN_SIGNAL") throw err;
             if (err.message === "QUOTA_EXCEEDED" && !em) {
-                vars["$USAGE"] = mon.usage;
-                vars["$ERROR"] = "QUOTA_EXCEEDED";
-                if (functions.ON_QUOTA) await execute(functions.ON_QUOTA, mon, true, scanner);
+                ctx.vars["$USAGE"] = ctx.mon.usage;
+                ctx.vars["$ERROR"] = "QUOTA_EXCEEDED";
+                if (ctx.functions.ON_QUOTA) await run(ctx.functions.ON_QUOTA, ctx, true);
                 throw err;
             }
             throw err;
@@ -236,32 +254,43 @@ async function boot() {
         scanner.scan(prog);
         console.log("🛡️  Safety Scan Passed.");
     } catch (e) {
-        vars["$ERROR"] = e.message;
-        const output = [vars["$ERROR"], null, null];
+        const output = [e.message, null, null];
         console.log("```yaml");
         console.log(YAML.stringify(output).trim());
         console.log("```");
         process.exit(1);
     }
 
-    // --- Runtime Instrumentation ---
+    // --- Build execution context ---
+    // NOTE (Stage 2): ctx.mods = global preserves existing behaviour.
+    // Stage 3 will replace this with the buildMods() result.
     const mon = new ResourceMonitor(mani.quotas);
     mon.instrumentFs(global.fs);
     global.fetch = mon.instrumentFetch(global.fetch);
 
+    const ctx = {
+        mods: global,
+        vars: {
+            "$LAST": null, "$ERROR": null, "$ITEM": null,
+            "$USAGE": null, "$INPUT": null, "$RETURN": null
+        },
+        functions: {},
+        mon,
+        scanner,
+    };
+
     try {
-        await execute(prog, mon, false, scanner);
-        if (!vars["$USAGE"]) vars["$USAGE"] = mon.usage;
-        const output = [null, vars["$RETURN"] ?? vars["$LAST"], vars["$USAGE"]];
+        await run(prog, ctx, false);
+        if (!ctx.vars["$USAGE"]) ctx.vars["$USAGE"] = ctx.mon.usage;
+        const output = [null, ctx.vars["$RETURN"] ?? ctx.vars["$LAST"], ctx.vars["$USAGE"]];
         console.log("✅ Execution Finished.");
         console.log("```yaml");
         console.log(YAML.stringify(output).trim());
         console.log("```");
         process.exit(0);
     } catch (e) {
-        vars["$ERROR"] = e.message;
-        if (!vars["$USAGE"]) vars["$USAGE"] = mon.usage;
-        const output = [vars["$ERROR"], null, vars["$USAGE"]];
+        if (!ctx.vars["$USAGE"]) ctx.vars["$USAGE"] = ctx.mon.usage;
+        const output = [e.message, null, ctx.vars["$USAGE"]];
         console.log("❌ Execution Failed.");
         console.log("```yaml");
         console.log(YAML.stringify(output).trim());
@@ -270,9 +299,9 @@ async function boot() {
     }
 }
 
-boot().catch(e => { 
-    if (e.message !== "HARD_STOP" && e.message !== "QUOTA_EXCEEDED" && !vars["$ERROR"]) {
-        console.error("❌ Unexpected Error:", e.message); 
+boot().catch(e => {
+    if (e.message !== "HARD_STOP" && e.message !== "QUOTA_EXCEEDED") {
+        console.error("❌ Unexpected Error:", e.message);
         process.exit(1);
     }
 });
