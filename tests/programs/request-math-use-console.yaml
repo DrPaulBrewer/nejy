@@ -1,0 +1,5 @@
+# request-math-use-console.yaml
+# REQUEST only math but then use console.log — should SEC_BLOCK.
+- ["REQUEST", ["math"]]
+- ["EXEC", ["math.evaluate", ["2 + 2"]]]
+- ["EXEC", ["console.log", ["Result:", "$LAST"]]]

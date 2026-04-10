@@ -14,7 +14,8 @@
     "test:security": "node --test tests/security.test.mjs",
     "test:buildmods": "node --test tests/buildMods.test.mjs",
     "test:context": "node --test tests/context-isolation.test.mjs",
-    "test:all": "node --test tests/integration.test.mjs tests/security.test.mjs tests/buildMods.test.mjs tests/context-isolation.test.mjs"
+    "test:request": "node --test tests/request.test.mjs",
+    "test:all": "node --test tests/integration.test.mjs tests/security.test.mjs tests/buildMods.test.mjs tests/context-isolation.test.mjs tests/request.test.mjs"
   },
   "dependencies": {
     "json5": "^2.2.3",

@@ -1,0 +1,4 @@
+# request-after-exec.yaml
+# EXEC appears before REQUEST — should SEC_BLOCK (REQUEST not at top).
+- ["EXEC", ["console.log", ["hello"]]]
+- ["REQUEST", ["math"]]

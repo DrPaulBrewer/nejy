@@ -1,0 +1,5 @@
+# parent-import-lib.yaml — happy path IMPORT test
+# Parent's REQUEST is a superset of the library's REQUEST → import succeeds.
+- ["REQUEST", ["math", "console.log"]]
+- ["IMPORT", ["tests/programs/lib-with-request.yaml"]]
+- ["CALL", ["computePi", null]]

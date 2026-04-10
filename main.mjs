@@ -18,8 +18,22 @@ import { buildMods, loadRegistry, effectiveRisk } from './lib/buildMods.mjs';
 // Interpreter-level commands are exempt from registry risk checks.
 // Programs cannot inject new command names; these are hard-coded in the interpreter.
 const KNOWN_COMMANDS = new Set([
-    "EXEC", "NEW", "SET", "DEF", "CALL", "PIPE", "IF", "FOR_EACH", "TRY", "IMPORT", "TO"
+    "EXEC", "NEW", "SET", "DEF", "CALL", "PIPE", "IF", "FOR_EACH", "TRY", "IMPORT", "TO", "REQUEST"
 ]);
+
+/**
+ * Returns true if pathStr is covered by the requestList.
+ *   "math"        covers "math.evaluate", "math.compile", … (module-prefix match)
+ *   "console.log" covers "console.log" only           (exact-method match)
+ * requestList === null means no REQUEST was declared → everything is allowed.
+ */
+function pathInRequest(pathStr, requestList) {
+    if (!requestList) return true; // no REQUEST → full manifest capabilities
+    return requestList.some(req =>
+        pathStr === req ||              // exact method match
+        pathStr.startsWith(req + '.')   // module-prefix match
+    );
+}
 
 class SecurityScanner {
     /**
@@ -31,11 +45,32 @@ class SecurityScanner {
         this.riskMap = { "LOW": 0, "MEDIUM": 1, "HIGH": 2, "INSANE": 3 };
         this.currentRisk = this.riskMap[manifest.maxRisk || "LOW"];
         this.registryEntries = registryEntries;
+        this.requestList = null; // set by scan() when program begins with REQUEST
     }
 
     scan(program) {
         if (this.currentRisk >= 3) return; // INSANE skips scan
-        this.analyze(program);
+
+        this.requestList = null;
+        let steps = program;
+
+        // If the program begins with REQUEST, extract and validate it.
+        // REQUEST must be the literal first step; its argument must be a literal list.
+        if (Array.isArray(program) && program.length > 0 &&
+            Array.isArray(program[0]) && program[0][0] === 'REQUEST') {
+            const reqArgs = program[0][1];
+            if (!Array.isArray(reqArgs))
+                throw new Error(`SEC_BLOCK: REQUEST argument must be a literal list`);
+            for (const req of reqArgs) {
+                if (typeof req !== 'string')
+                    throw new Error(`SEC_BLOCK: REQUEST items must be strings`);
+                this.checkPath(req, true); // validate within maxRisk; skip subset check
+            }
+            this.requestList = reqArgs;
+            steps = program.slice(1); // scan the body after REQUEST
+        }
+
+        this.analyze(steps);
     }
 
     /**
@@ -52,7 +87,7 @@ class SecurityScanner {
         return effectiveRisk(pathStr, this.registryEntries) ?? "INSANE";
     }
 
-    checkPath(pathStr) {
+    checkPath(pathStr, skipRequestCheck = false) {
         if (typeof pathStr !== 'string') return;
         // Prototype-chain attacks are always blocked (also caught by resolvePath at runtime).
         if (/prototype|__proto__|constructor/.test(pathStr))
@@ -60,6 +95,12 @@ class SecurityScanner {
         const required = this.riskOf(pathStr);
         if (this.riskMap[required] > this.currentRisk)
             throw new Error(`SEC_BLOCK: '${pathStr}' requires ${required} risk (Manifest: ${this.manifest.maxRisk})`);
+        // REQUEST enforcement: when a REQUEST is declared, all callable paths must be in it.
+        // $-prefixed paths are runtime variable method calls — cannot be verified statically.
+        if (!skipRequestCheck && this.requestList !== null && !pathStr.startsWith('$')) {
+            if (!pathInRequest(pathStr, this.requestList))
+                throw new Error(`SEC_BLOCK: '${pathStr}' was not declared in this program's REQUEST`);
+        }
     }
 
     analyze(steps) {
@@ -67,6 +108,13 @@ class SecurityScanner {
         for (const step of steps) {
             if (!Array.isArray(step)) continue;
             const [path, args = []] = step;
+
+            // REQUEST is only valid as the first step of the top-level program.
+            // scan() strips it before calling analyze(), so any REQUEST still present
+            // here must be misplaced (inside a DEF body, IF branch, etc.) — block it.
+            if (path === 'REQUEST') {
+                throw new Error(`SEC_BLOCK: REQUEST must be the first command of the program`);
+            }
 
             // Named interpreter commands are exempt from registry risk checks.
             // Non-command paths are shorthand callables (e.g. ["math.evaluate", [...]]).
@@ -212,18 +260,74 @@ const commands = {
     },
     SET: ([name, val], ctx) => { ctx.vars[`$${name}`] = resolveArgs(val, ctx); },
     DEF: ([name, steps], ctx) => { ctx.functions[name] = steps; },
+    REQUEST: () => {
+        // Fully handled at scan time — no-op at runtime.
+        // scan() validates position, items, and risk before execution begins.
+    },
     IMPORT: async ([src], ctx) => {
         const url = resolveArgs(src, ctx);
         const content = url.startsWith('http')
             ? await (await fetch(url)).json()
             : YAML.parse(fsProxy.readFileSync(url, 'utf8'));
-        // Scan each imported function body before merging
-        if (ctx.scanner) {
-            for (const [name, body] of Object.entries(content)) {
-                ctx.scanner.analyze(body);
+
+        if (Array.isArray(content)) {
+            // ── New-style library: array program with optional REQUEST ──────────────
+            let libRequestList = null;
+            let libBody = content;
+
+            if (content.length > 0 && Array.isArray(content[0]) && content[0][0] === 'REQUEST') {
+                const libReqArgs = content[0][1];
+                if (!Array.isArray(libReqArgs))
+                    throw new Error(`SEC_BLOCK: imported library REQUEST must be a literal list`);
+                libRequestList = libReqArgs;
+                libBody = content.slice(1);
+
+                // Validate library's REQUEST:
+                //   (a) each item must be within the manifest's maxRisk
+                //   (b) each item must be in the parent's REQUEST (if the parent has one)
+                if (ctx.scanner) {
+                    for (const req of libRequestList) {
+                        if (typeof req !== 'string')
+                            throw new Error(`SEC_BLOCK: library REQUEST items must be strings`);
+                        ctx.scanner.checkPath(req, true); // (a) maxRisk check
+                        if (ctx.scanner.requestList !== null &&
+                            !pathInRequest(req, ctx.scanner.requestList)) { // (b) subset check
+                            throw new Error(
+                                `SEC_BLOCK: imported library requests '${req}' ` +
+                                `which is not granted by this program's REQUEST`);
+                        }
+                    }
+                }
             }
+
+            // Create a library-scoped scanner that enforces the library's own REQUEST.
+            const libScanner = ctx.scanner
+                ? new SecurityScanner(ctx.scanner.manifest, ctx.scanner.registryEntries)
+                : null;
+            if (libScanner) libScanner.requestList = libRequestList;
+
+            // Extract only DEF commands from the library (libraries export functions, not side effects).
+            for (const step of libBody) {
+                if (!Array.isArray(step)) continue;
+                const [cmd, args] = step;
+                if (cmd === 'DEF') {
+                    const [name, body] = Array.isArray(args) ? args : [args, []];
+                    if (libScanner && Array.isArray(body)) libScanner.analyze(body);
+                    if (name && body) ctx.functions[name] = body;
+                }
+                // Non-DEF top-level steps in libraries are silently ignored.
+                // (Libraries only export function definitions.)
+            }
+        } else if (content && typeof content === 'object') {
+            // ── Old-style library: plain object map { fnName: steps } ─────────────
+            // Backwards compatible: functions inherit the parent's effective capabilities.
+            if (ctx.scanner) {
+                for (const [name, body] of Object.entries(content)) {
+                    ctx.scanner.analyze(body);
+                }
+            }
+            Object.assign(ctx.functions, content);
         }
-        Object.assign(ctx.functions, content);
     },
     CALL: async ([name, input], ctx, em) => {
         if (!ctx.functions[name]) throw new Error(`Fn Undefined: ${name}`);
