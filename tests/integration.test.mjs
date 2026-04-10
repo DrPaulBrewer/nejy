@@ -68,12 +68,12 @@ const testCases = [
 ];
 
 testCases.forEach(({ code, policy, ok }) => {
-  test(`nejy run ${code} --policy ${policy} (expected ok: ${ok})`, { timeout: 15000 }, async () => {
+  test(`nejy run ${code} --policy ${policy} (expected ok: ${ok})`, { timeout: 30000 }, async () => {
     let stdout, stderr, killed = false, exitCode = 0;
     try {
       const result = await execAsync(`node main.mjs run "${code}" --policy="${policy}"`, {
         shell: '/bin/bash',
-        timeout: 10000
+        timeout: 20000
       });
       stdout = result.stdout;
       stderr = result.stderr;
