@@ -2,40 +2,9 @@
 
 This document contains a structured code review of the `main.mjs` entry point, identifying immediate bugs, architectural flaws, "dead code" blocks, and security-breaking global manipulations.
 
----
+1. Fixed
+2. Fixed
 
-## 1. Dead Code Blocks
-**File Location:** `main.mjs` Lines 511-519
-**Observation:** You have a heavily nested condition checking for `fetch` instrumentation, but regardless of the condition or state, no code executes. The block is purely vestigial comments.
-```javascript
-if (mods.fetch !== undefined) {
-    // Only instrument fetch if global fetch is available.
-    // Our secureFetch wrapper handles the headers/methods automatically.
-    if (globalThis.fetch) {
-        // We can optionally attach network bandwidth counting here, 
-        // but monitor no longer intercepts the rules.
-    }
-}
-```
-**Recommendation:** Remove the entire `if (mods.fetch !== undefined)` branch since no rule interceptions take place.
-
----
-
-## 2. Usage of `global` and `globalThis`
-**File Location:** `main.mjs` Lines 170-175, Line 515
-**Observation:** The interpreter forces library/primitive properties directly onto the Node `global` object for backwards compatibility.
-```javascript
-global.math = math; global.os = os; global.YAML = YAML;
-global.console = console; global.fs = fsProxy; global.Reflect = Reflect;
-global.child_process = cp; global.cp = cp;
-[Date, Map, Set, URL, Buffer, Array, Object, Number, BigInt, String, Boolean].forEach(c => global[c.name] = c);
-```
-Additionally, `globalThis.fetch` is accessed later in the file:
-```javascript
-if (globalThis.fetch) { ... }
-```
-**Why this is a Code Smell:** 
-Modifying the generic Node `global` breaks context isolation completely. Since `buildMods` and `ctx.mods` were built specifically to resolve isolation problems and implement per-module proxying, explicitly dropping raw modules into `global` fundamentally breaches the security architecture. This leaves the system open to cross-script prototype leakages and dependency overlaps, undermining the entire sandbox.
 
 ---
 

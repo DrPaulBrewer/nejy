@@ -15,7 +15,8 @@
     "test:buildmods": "node --test tests/buildMods.test.mjs",
     "test:context": "node --test tests/context-isolation.test.mjs",
     "test:request": "node --test tests/request.test.mjs",
-    "test:all": "node --test tests/integration.test.mjs tests/security.test.mjs tests/buildMods.test.mjs tests/context-isolation.test.mjs tests/request.test.mjs"
+    "test:redteam": "node --test tests/redteam.test.mjs",
+    "test:all": "node --test tests/integration.test.mjs tests/security.test.mjs tests/buildMods.test.mjs tests/context-isolation.test.mjs tests/request.test.mjs tests/redteam.test.mjs"
   },
   "dependencies": {
     "commander": "^14.0.3",
