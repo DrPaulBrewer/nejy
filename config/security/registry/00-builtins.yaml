@@ -107,3 +107,8 @@ entries:
     src: import
     module: node:crypto
     risk: LOW
+
+  - key: Zlib
+    src: import
+    module: node:zlib
+    risk: LOW

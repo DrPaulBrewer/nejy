@@ -1,4 +1,5 @@
-- [SET, ["ciphertext", "-----BEGIN PGP MESSAGE-----\n\njA0ECQMKPvl5iB22FnL/0kIBkWTB2eAb/zaklwe2ZOlHmv3w+YHXHd+YhqIO1lgK\nsWfjK53RE8l9wlMjafUdnXGxmleSsedpgWNCVD66UnkbxFg=\n=absj\n-----END PGP MESSAGE-----\n"]]
+- [EXEC, ["fs.readFileSync", ["examples/crypto/symmetric-ciphertext-input.txt", "utf8"]]]
+- [SET, ["ciphertext", "$LAST"]]
 
 # Nejy now handles primitives natively thanks to the Reflect.get(Object(fn)) fix.
 # We no longer need 'NEW String' wrappers.
@@ -7,10 +8,13 @@
 # Robust Armor Stripping
 - [EXEC, ["$cipherObj.split", ["\n\n"]]]
 - [SET, ["parts", "$LAST"]]
-- [SET, ["bodyPlusCRC", "$parts.1"]]
+- [EXEC, ["$parts.at", [1]]]
+- [SET, ["bodyPlusCRC", "$LAST"]]
 
 - [EXEC, ["$bodyPlusCRC.split", ["\n="]]]
-- [SET, ["b64", "$LAST.0"]]
+- [SET, ["b64_arr", "$LAST"]]
+- [EXEC, ["$b64_arr.at", [0]]]
+- [SET, ["b64", "$LAST"]]
 
 # Decode Base64 to Buffer
 - [EXEC, ["Buffer.from", ["$b64", "base64"]]]
@@ -38,34 +42,37 @@
 - [EXEC, ["$LAST.subarray", [0, 32]]]
 - [SET, ["key", "$LAST"]]
 
-# --- RFC 4880 OpenPGP CFB Decryption with Resync ---
+# --- RFC 4880 OpenPGP CFB Decryption ---
 # The SEIPD (Tag 18) ciphertext starts at index 18 of the packet.
 - [EXEC, ["$packet.subarray", [18]]]
 - [SET, ["C", "$LAST"]]
 
-# Step 1: Decrypt the 16-byte random prefix and 2-byte check sequence.
-# This sequence uses a zero IV in OpenPGP CFB mode.
+# SEIPD uses standard CFB mode (no resync) with a zero IV.
 - [EXEC, ["Buffer.alloc", [16]]]
 - [SET, ["zeroIV", "$LAST"]]
 
 - [EXEC, ["Crypto.createDecipheriv", ["aes-256-cfb", "$key", "$zeroIV"]]]
-- [SET, ["decStep1", "$LAST"]]
-- [EXEC, ["$decStep1.update", [["$C.subarray", [0, 18]]]]]
-- [SET, ["prefixPart", "$LAST"]]
+- [SET, ["dec", "$LAST"]]
+- [EXEC, ["$dec.update", ["$C"]]]
+- [SET, ["updatePart", "$LAST"]]
+- [EXEC, ["$dec.final", []]]
+- [SET, ["finalPart", "$LAST"]]
 
-# Step 2: RESYNC.
-# Per RFC 4880 Section 13.9, after the 18-byte prefix, the feedback register 
-# is reloaded with the last 16 bytes of the ciphertext (C[2] through C[17]).
-- [EXEC, ["$C.subarray", [2, 18]]]
-- [SET, ["resyncIV", "$LAST"]]
+- [EXEC, ["Buffer.concat", [[ "$updatePart", "$finalPart" ]]]]
+- [SET, ["plain", "$LAST"]]
 
-- [EXEC, ["Crypto.createDecipheriv", ["aes-256-cfb", "$key", "$resyncIV"]]]
-- [SET, ["decStep2", "$LAST"]]
-- [EXEC, ["$decStep2.update", [["$C.subarray", [18]]]]]
-- [SET, ["dataPart", "$LAST"]]
+# Compressed Data Packet (Tag 8) starts at offset 18 of plain buffer.
+# The compressed algorithm is at offset 19 (1 = ZIP).
+# The compressed data stream begins at offset 20.
+- [EXEC, ["$plain.subarray", [20]]]
+- [SET, ["compressed", "$LAST"]]
 
-# Combine prefix and data
-- [EXEC, ["Buffer.concat", [[ "$prefixPart", "$dataPart" ]]]]
+# Decompress using zlib.inflateRawSync
+- [EXEC, ["Zlib.inflateRawSync", ["$compressed"]]]
+- [SET, ["uncompressed", "$LAST"]]
+
+# Literal Data Packet (Tag 11) data begins at offset 8 of uncompressed buffer.
+- [EXEC, ["$uncompressed.subarray", [8]]]
 - [SET, ["plaintextBuffer", "$LAST"]]
 
 # Extract readable text
