@@ -19,7 +19,7 @@ import { Command } from 'commander';
 // Interpreter-level commands are exempt from registry risk checks.
 // Programs cannot inject new command names; these are hard-coded in the interpreter.
 const KNOWN_COMMANDS = new Set([
-    "EXEC", "NEW", "SET", "DEF", "CALL", "PIPE", "IF", "FOR_EACH", "TRY", "IMPORT", "TO", "REQUEST"
+    "EXEC", "NEW", "SET", "DEF", "CALL", "PIPE", "IF", "FOR_EACH", "TRY", "IMPORT", "TO", "REQUEST", "SANDBOX"
 ]);
 
 class SecurityScanner {
@@ -155,6 +155,39 @@ class SecurityScanner {
                     if (typeof code[0] === 'string') this.analyze([code]);  // single step
                     else this.analyze(code);                                // block of steps
                 }
+            } else if (path === 'SANDBOX') {
+                const [initOpts, subprogram] = args;
+                if (!Array.isArray(subprogram)) continue;
+
+                let childPolicy = this.manifest.maxRisk;
+                let childCapabilities = this.requestList; // null means full capabilities of manifest
+
+                if (initOpts !== 'copy') {
+                    if (initOpts.policy) {
+                        const childRisk = this.riskMap[initOpts.policy] ?? 3; // default INSANE if invalid
+                        if (childRisk > this.currentRisk) {
+                            throw new Error(`SEC_BLOCK: SANDBOX policy '${initOpts.policy}' exceeds parent policy '${this.manifest.maxRisk}'`);
+                        }
+                        childPolicy = initOpts.policy;
+                    }
+                    if (initOpts.capabilities && Array.isArray(initOpts.capabilities)) {
+                        for (const req of initOpts.capabilities) {
+                            if (typeof req !== 'string') throw new Error(`SEC_BLOCK: SANDBOX capabilities must be strings`);
+                            // Validate capability is within the PARENT's allowed capabilities
+                            this.checkPath(req, false);
+                        }
+                        childCapabilities = initOpts.capabilities;
+                    } else if (!initOpts.capabilities) {
+                        childCapabilities = []; // {} means NO capabilities (unless 'copy' used)
+                    }
+                }
+
+                const childScanner = new SecurityScanner(
+                    { ...this.manifest, maxRisk: childPolicy },
+                    this.registryEntries
+                );
+                childScanner.requestList = childCapabilities;
+                childScanner.analyze(subprogram);
             }
             // PIPE: already fully handled in the explicit PIPE block above.
             // EXEC, NEW, SET, CALL, IMPORT: args are data — no branch recursion.
@@ -379,6 +412,83 @@ const commands = {
         const block = (Array.isArray(code) && typeof code[0] === 'string') ? [code] : code;
         await run(block, ctx, em);
         ctx.vars[`$${varname}`] = ctx.vars["$LAST"];
+    },
+    SANDBOX: async ([initOpts, subprogram], ctx, em) => {
+        let childPolicy = ctx.scanner ? ctx.scanner.manifest.maxRisk : 'LOW';
+        let childCapabilities = ctx.scanner ? ctx.scanner.requestList : null;
+        let childVars = {};
+
+        if (initOpts === 'copy') {
+            childVars = structuredClone(ctx.vars);
+        } else {
+            if (initOpts.policy) childPolicy = initOpts.policy;
+            if (initOpts.capabilities) {
+                childCapabilities = initOpts.capabilities;
+            } else if (initOpts.capabilities === undefined) {
+                childCapabilities = [];
+            }
+
+            if (initOpts.context === "$VARS") {
+                childVars = structuredClone(ctx.vars);
+            } else if (Array.isArray(initOpts.context)) {
+                for (const v of initOpts.context) {
+                    if (isVar(v, ctx)) {
+                        childVars[v] = structuredClone(ctx.vars[v]);
+                    } else if (typeof v === 'string' && v.startsWith('$') && ctx.vars[v] !== undefined) {
+                        childVars[v] = structuredClone(ctx.vars[v]);
+                    }
+                }
+                // Always carry over basic runtime context variables
+                childVars["$LAST"] = structuredClone(ctx.vars["$LAST"] ?? null);
+                childVars["$ERROR"] = structuredClone(ctx.vars["$ERROR"] ?? null);
+                childVars["$ITEM"] = structuredClone(ctx.vars["$ITEM"] ?? null);
+                childVars["$USAGE"] = structuredClone(ctx.vars["$USAGE"] ?? null);
+                childVars["$INPUT"] = structuredClone(ctx.vars["$INPUT"] ?? null);
+                childVars["$RETURN"] = structuredClone(ctx.vars["$RETURN"] ?? null);
+            } else if (initOpts.context && typeof initOpts.context === 'object') {
+                for (const [k, v] of Object.entries(initOpts.context)) {
+                    childVars[k] = structuredClone(resolveArgs(v, ctx) ?? null);
+                }
+                childVars["$LAST"] = structuredClone(ctx.vars["$LAST"] ?? null);
+                childVars["$ERROR"] = structuredClone(ctx.vars["$ERROR"] ?? null);
+                childVars["$ITEM"] = structuredClone(ctx.vars["$ITEM"] ?? null);
+                childVars["$USAGE"] = structuredClone(ctx.vars["$USAGE"] ?? null);
+                childVars["$INPUT"] = structuredClone(ctx.vars["$INPUT"] ?? null);
+                childVars["$RETURN"] = structuredClone(ctx.vars["$RETURN"] ?? null);
+            } else {
+                 childVars = {
+                     "$LAST": structuredClone(ctx.vars["$LAST"] ?? null),
+                     "$ERROR": structuredClone(ctx.vars["$ERROR"] ?? null),
+                     "$ITEM": structuredClone(ctx.vars["$ITEM"] ?? null),
+                     "$USAGE": structuredClone(ctx.vars["$USAGE"] ?? null),
+                     "$INPUT": structuredClone(ctx.vars["$INPUT"] ?? null),
+                     "$RETURN": structuredClone(ctx.vars["$RETURN"] ?? null)
+                 };
+            }
+        }
+
+        const registryEntries = ctx.scanner ? ctx.scanner.registryEntries : [];
+        const childMods = await buildMods(registryEntries, childPolicy, childCapabilities);
+
+        if (childMods.fs && ctx.mon) ctx.mon.instrumentFs(childMods.fs);
+
+        const childCtx = {
+            mods: childMods,
+            vars: childVars,
+            functions: { ...ctx.functions }, // shallow copy functions
+            mon: ctx.mon,
+            scanner: ctx.scanner ? new SecurityScanner(
+                 { ...ctx.scanner.manifest, maxRisk: childPolicy },
+                 registryEntries
+            ) : null
+        };
+        if (childCtx.scanner) childCtx.scanner.requestList = childCapabilities;
+
+        await run(subprogram, childCtx, em);
+
+        if (childCtx.vars["$RETURN"] !== undefined) {
+             ctx.vars["$LAST"] = structuredClone(childCtx.vars["$RETURN"]);
+        }
     },
 };
 
