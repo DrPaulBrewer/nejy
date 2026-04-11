@@ -69,14 +69,6 @@ entries:
       Object.create: LOW
       Object.hasOwn: LOW
 
-      # Higher risk methods restored for HIGH policy compatibility
-      Object.setPrototypeOf: HIGH
-      Object.defineProperty: HIGH
-      Object.defineProperties: HIGH
-      Object.getOwnPropertyDescriptor: HIGH
-      Object.getOwnPropertyDescriptors: HIGH
-      Object.getPrototypeOf: HIGH
-
   # --- Reflect: base INSANE, completely restricted to block dynamic property hijacking ---
 
   - key: Reflect

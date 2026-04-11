@@ -156,10 +156,10 @@ test('MEDIUM: child_process is still not present (HIGH > MEDIUM)', async () => {
   assert.strictEqual(mods.cp, undefined);
 });
 
-test('MEDIUM: Object.setPrototypeOf still blocked (HIGH > MEDIUM)', async () => {
+test('MEDIUM: Object.setPrototypeOf still blocked (INSANE > MEDIUM)', async () => {
   const mods = await buildMods(ALL, 'MEDIUM');
   assert.strictEqual(mods.Object.setPrototypeOf, undefined,
-    'Object.setPrototypeOf (HIGH) should not be accessible at MEDIUM');
+    'Object.setPrototypeOf (INSANE) should not be accessible at MEDIUM');
 });
 
 test('MEDIUM: eval and process still not in Mods', async () => {
@@ -203,10 +203,22 @@ test('HIGH: child_process.fork is not present (INSANE > HIGH)', async () => {
   assert.strictEqual(mods.cp.fork, undefined);
 });
 
-test('HIGH: Object.setPrototypeOf is now accessible', async () => {
+test('HIGH: Object.setPrototypeOf is blocked (INSANE > HIGH)', async () => {
   const mods = await buildMods(ALL, 'HIGH');
-  assert.strictEqual(typeof mods.Object.setPrototypeOf, 'function',
-    'Object.setPrototypeOf (HIGH) should be accessible at HIGH risk');
+  assert.strictEqual(mods.Object.setPrototypeOf, undefined,
+    'Object.setPrototypeOf (INSANE) should not be accessible at HIGH risk');
+});
+
+test('HIGH: Object.defineProperty is blocked (INSANE > HIGH)', async () => {
+  const mods = await buildMods(ALL, 'HIGH');
+  assert.strictEqual(mods.Object.defineProperty, undefined,
+    'Object.defineProperty (INSANE) should not be accessible at HIGH');
+});
+
+test('HIGH: Object.getPrototypeOf is blocked (INSANE > HIGH)', async () => {
+  const mods = await buildMods(ALL, 'HIGH');
+  assert.strictEqual(mods.Object.getPrototypeOf, undefined,
+    'Object.getPrototypeOf (INSANE) should not be accessible at HIGH');
 });
 
 test('HIGH: eval and process still not in Mods (not in any loaded registry)', async () => {
