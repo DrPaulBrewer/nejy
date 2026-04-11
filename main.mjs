@@ -182,14 +182,12 @@ const DEFAULT_REGISTRY = [
 // Context-aware helpers
 // ctx = { mods, vars, functions, mon, scanner }
 //
-// NOTE (Stage 2): ctx.mods is currently set to `global` so that resolvePath
-// behaviour is unchanged. Stage 3 will replace global with the buildMods result.
 // ---------------------------------------------------------------------------
 
-const isVar = (k) => typeof k === 'string' && k.startsWith('$');
+const isVar = (k, ctx) => typeof k === 'string' && k.startsWith('$') && (k in ctx.vars);
 
 const resolveArgs = (args, ctx) => {
-    if (isVar(args)) return ctx.vars[args] ?? args;
+    if (isVar(args, ctx)) return ctx.vars[args];
     if (Array.isArray(args)) return args.map(a => resolveArgs(a, ctx));
     if (args && typeof args === 'object') return Object.fromEntries(Object.entries(args).map(([k, v]) => [k, resolveArgs(v, ctx)]));
     return args;
