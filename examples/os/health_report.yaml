@@ -1,21 +1,13 @@
 # 🏥 System Health Report
-- ["EXEC", ["os.hostname", []]]
-- ["SET", ["host", "$LAST"]]
-
-# NEW uses the global Date constructor
-- ["NEW", ["Date", []]]
-- ["SET", ["dateObj", "$LAST"]]
-
-# EXEC uses the method on our variable $dateObj
-- ["EXEC", ["$dateObj.toISOString", []]]
-- ["SET", ["utc", "$LAST"]]
+- ["TO", ["host",    ["os.hostname", []]]]
+- ["TO", ["dateObj", ["NEW", ["Date", []]]]]
+- ["TO", ["utc",     ["$dateObj.toISOString", []]]]
 
 # Using Math.max on an array
 - ["SET", ["nums", [10, 50, 20]]]
-- ["EXEC", ["Math.max.apply", [null, "$nums"]]]
-- ["SET", ["maxVal", "$LAST"]]
+- ["TO", ["maxVal", ["Math.max.apply", [null, "$nums"]]]]
 
 - ["SET", ["entries", [["host", "$host"], ["time", "$utc"], ["max", "$maxVal"]]]]
 - ["EXEC", ["Object.fromEntries", ["$entries"]]]
-- ["EXEC", ["YAML.stringify", ["$LAST"]]]
-- ["EXEC", ["console.log", ["$LAST"]]]
+- ["EXEC", ["YAML.stringify",     ["$LAST"]]]
+- ["EXEC", ["console.log",        ["$LAST"]]]

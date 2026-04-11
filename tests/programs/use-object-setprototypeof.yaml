@@ -1,0 +1,5 @@
+# use-object-setprototypeof.yaml
+# KNOWN GAP: Object.setPrototypeOf should require HIGH risk.
+# Currently this program runs successfully at LOW risk (gap!).
+- ["EXEC", ["Object.setPrototypeOf", [{}, null]]]
+- ["SET", ["RETURN", "ok"]]

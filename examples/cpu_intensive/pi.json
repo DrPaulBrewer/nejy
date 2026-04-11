@@ -1,38 +1,32 @@
 [
   ["EXEC", ["console.log", ["--- Calculating Pi (Fixed Leibniz) ---"]]],
-  ["SET", ["sum", 0]],
-  
+  ["SET",  ["sum", 0]],
+
   ["DEF", [
-    "ON_QUOTA", 
+    "ON_QUOTA",
     [
       ["EXEC", ["math.multiply", ["$sum", 4]]],
-      ["EXEC", ["console.log", ["🏁 Final Breath Pi:", "$LAST"]]],
+      ["EXEC", ["console.log", ["🏁 Final Breath Pi:",    "$LAST"]]],
       ["EXEC", ["console.log", ["   Iterations completed:", "$ITEM"]]],
-      ["EXEC", ["console.log", ["📊 Final Usage Report:", "$USAGE"]]]
+      ["EXEC", ["console.log", ["📊 Final Usage Report:",  "$USAGE"]]]
     ]
   ]],
 
   ["FOR_EACH", [
-    1000000000, 
+    1000000000,
     [
-      ["EXEC", ["math.multiply", ["$ITEM", 2]]],
-      ["EXEC", ["math.add", ["$LAST", 1]]],
-      ["SET", ["divisor", "$LAST"]],
-      
-      ["EXEC", ["math.divide", [1, "$divisor"]]],
-      ["SET", ["term", "$LAST"]],
-      
+      ["TO", ["divisor", [
+        ["EXEC", ["math.multiply", ["$ITEM", 2]]],
+        ["EXEC", ["math.add",      ["$LAST", 1]]]
+      ]]],
+
+      ["TO", ["term",    ["math.divide", [1, "$divisor"]]]],
+
       ["EXEC", ["math.mod", ["$ITEM", 2]]],
       ["IF", [
         ["EXEC", ["math.equal", ["$LAST", 0]]],
-        [
-          ["EXEC", ["math.add", ["$sum", "$term"]]],
-          ["SET", ["sum", "$LAST"]]
-        ],
-        [
-          ["EXEC", ["math.subtract", ["$sum", "$term"]]],
-          ["SET", ["sum", "$LAST"]]
-        ]
+        [["TO", ["sum", ["math.add",      ["$sum", "$term"]]]]],
+        [["TO", ["sum", ["math.subtract", ["$sum", "$term"]]]]]
       ]]
     ]
   ]]

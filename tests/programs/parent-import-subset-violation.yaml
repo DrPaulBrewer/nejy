@@ -1,0 +1,6 @@
+# parent-import-subset-violation.yaml — IMPORT fails due to REQUEST subset violation
+# Parent only REQUESTs "math". Library requests "math" + "console.log".
+# console.log is not in parent's REQUEST → SEC_BLOCK at IMPORT.
+- ["REQUEST", ["math"]]
+- ["IMPORT", ["tests/programs/lib-exceeds-parent.yaml"]]
+- ["CALL", ["compute", null]]

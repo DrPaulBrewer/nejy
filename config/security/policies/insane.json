@@ -1,0 +1,8 @@
+{
+  "maxRisk": "INSANE",
+  "quotas": {
+    "maxCpuMs": 60000,
+    "maxMemoryMb": 32768,
+    "maxFsBytes": 10000000000
+  }
+}

@@ -1,0 +1,5 @@
+# request-os-module.yaml
+# REQUEST the entire "os" module — all os methods within maxRisk should be available.
+- ["REQUEST", ["os", "console.log"]]
+- ["EXEC", ["os.hostname", []]]
+- ["EXEC", ["console.log", ["Hostname:", "$LAST"]]]

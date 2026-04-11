@@ -10,9 +10,16 @@
   "type": "module",
   "main": "main.js",
   "scripts": {
-    "test": "node --test tests/integration.test.mjs"
+    "test": "node --test tests/integration.test.mjs",
+    "test:security": "node --test tests/security.test.mjs",
+    "test:buildmods": "node --test tests/buildMods.test.mjs",
+    "test:context": "node --test tests/context-isolation.test.mjs",
+    "test:request": "node --test tests/request.test.mjs",
+    "test:redteam": "node --test tests/redteam.test.mjs",
+    "test:all": "node --test tests/integration.test.mjs tests/security.test.mjs tests/buildMods.test.mjs tests/context-isolation.test.mjs tests/request.test.mjs tests/redteam.test.mjs tests/sandbox/sandbox.test.mjs"
   },
   "dependencies": {
+    "commander": "^14.0.3",
     "json5": "^2.2.3",
     "mathjs": "^15.2.0",
     "yaml": "^2.8.3"

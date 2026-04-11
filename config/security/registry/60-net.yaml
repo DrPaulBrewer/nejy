@@ -1,0 +1,44 @@
+entries:
+  - key: fetch
+    src: import
+    module: ./secureFetch.mjs
+    risk: MEDIUM
+    setup:
+      - ["EXEC", ["$MODULE", [
+          [
+            {
+              "pattern": {},
+              "methods": ["GET"],
+              "forbiddenHeaders": ["Cookie", "Authorization"],
+              "forcedHeaders": {
+                "User-Agent": "SecureBot/24.0"
+              }
+            }
+          ]
+        ]]]
+  - key: child_process
+    src: import
+    module: node:child_process
+    risk: INSANE
+    methods:
+      child_process.exec: HIGH
+      child_process.execSync: HIGH
+      child_process.execFile: HIGH
+      child_process.execFileSync: HIGH
+      child_process.spawn: HIGH
+      child_process.spawnSync: HIGH
+      child_process.fork: INSANE
+
+  # cp is an alias for child_process (same module, different key)
+  - key: cp
+    src: import
+    module: node:child_process
+    risk: INSANE
+    methods:
+      cp.exec: HIGH
+      cp.execSync: HIGH
+      cp.execFile: HIGH
+      cp.execFileSync: HIGH
+      cp.spawn: HIGH
+      cp.spawnSync: HIGH
+      cp.fork: INSANE

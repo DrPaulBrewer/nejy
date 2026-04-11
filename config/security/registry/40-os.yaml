@@ -1,0 +1,23 @@
+entries:
+  - key: os
+    src: import
+    module: node:os
+    risk: INSANE
+    # Explicit listing: only named methods go into Mods
+    methods:
+      os.hostname: MEDIUM
+      os.uptime: MEDIUM
+      os.platform: MEDIUM
+      os.arch: MEDIUM
+      os.type: MEDIUM
+      os.release: MEDIUM
+      os.version: MEDIUM
+      os.freemem: MEDIUM
+      os.totalmem: MEDIUM
+      os.cpus: MEDIUM
+      os.loadavg: MEDIUM
+      os.homedir: MEDIUM
+      os.tmpdir: MEDIUM
+      os.endianness: MEDIUM
+      os.networkInterfaces: HIGH
+      os.userInfo: HIGH
