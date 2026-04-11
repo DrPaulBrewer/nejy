@@ -141,3 +141,34 @@ test('B06: fs.writeFileSync is blocked at MEDIUM risk (SEC_BLOCK — HIGH > MEDI
   assert.ok(r.errorMsg && r.errorMsg.includes('SEC_BLOCK'),
     `Expected SEC_BLOCK, got: ${r.errorMsg}`);
 });
+
+test('B07: fetch GET requires MEDIUM risk', async () => {
+  const r = await runNejy('tests/programs/use-fetch-get.yaml', LOW);
+  assert.notStrictEqual(r.exitCode, 0, 'fetch GET should be blocked at LOW');
+  assert.ok(r.errorMsg && r.errorMsg.includes('SEC_BLOCK'),
+    `Expected SEC_BLOCK, got: ${r.errorMsg}`);
+});
+
+test('B08: fetch GET succeeds at MEDIUM risk', async () => {
+  const r = await runNejy('tests/programs/use-fetch-get.yaml', MEDIUM);
+  // It might fail on execution because URLPattern is not available, but it should pass the static scan.
+  // The error should NOT be SEC_BLOCK
+  if (r.errorMsg) {
+     assert.ok(!r.errorMsg.includes('SEC_BLOCK'), `Did not expect SEC_BLOCK, got: ${r.errorMsg}`);
+  }
+});
+
+test('B09: fetch POST requires HIGH risk', async () => {
+  const r = await runNejy('tests/programs/use-fetch-post.yaml', MEDIUM);
+  assert.notStrictEqual(r.exitCode, 0, 'fetch POST should be blocked at MEDIUM');
+  assert.ok(r.errorMsg && r.errorMsg.includes('SEC_BLOCK'),
+    `Expected SEC_BLOCK, got: ${r.errorMsg}`);
+});
+
+test('B10: fetch POST succeeds at HIGH risk', async () => {
+  const r = await runNejy('tests/programs/use-fetch-post.yaml', HIGH);
+  // It might fail on execution because URLPattern is not available, but it should pass the static scan.
+  if (r.errorMsg) {
+     assert.ok(!r.errorMsg.includes('SEC_BLOCK'), `Did not expect SEC_BLOCK, got: ${r.errorMsg}`);
+  }
+});

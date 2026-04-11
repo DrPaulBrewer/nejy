@@ -1,0 +1,2 @@
+- ["EXEC", ["fetch", ["http://example.com", {"method": "GET"}]]]
+- ["SET", ["RETURN", "fetch-get-ok"]]

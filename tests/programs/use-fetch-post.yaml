@@ -1,0 +1,2 @@
+- ["EXEC", ["fetch", ["http://example.com", {"method": "POST"}]]]
+- ["SET", ["RETURN", "fetch-post-ok"]]

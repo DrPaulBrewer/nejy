@@ -1,0 +1,18 @@
+--- main.mjs
++++ main.mjs
+@@ -113,6 +113,15 @@
+             // For EXEC and NEW, check the explicit target callable path.
+             if ((path === "EXEC" || path === "NEW") && Array.isArray(args) && typeof args[0] === 'string') {
+                 this.checkPath(args[0]);
++
++                // For fetch with method, check required level
++                if (args[0] === "fetch") {
++                    const options = (args[1] && typeof args[1] === 'object' && !Array.isArray(args[1])) ? args[1] : (args[1]?.[1] || {});
++                    const method = (options.method || "GET").toUpperCase();
++                    const required = method === "GET" ? "MEDIUM" : "HIGH";
++                    if (this.riskMap[required] > this.currentRisk)
++                        throw new Error(`SEC_BLOCK: 'fetch' ${method} requires ${required} risk (Manifest: ${this.manifest.maxRisk})`);
++                }
+             }
+
+             // For PIPE, check string-shorthand step targets.

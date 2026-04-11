@@ -1,0 +1,1 @@
+- ["EXEC", ["fetch", ["http://example.com", {"method": "POST"}]]]
