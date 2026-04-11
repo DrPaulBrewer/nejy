@@ -1,0 +1,87 @@
+- [SET, ["ciphertext", "-----BEGIN PGP MESSAGE-----\n\njA0ECQMKPvl5iB22FnL/0kIBkWTB2eAb/zaklwe2ZOlHmv3w+YHXHd+YhqIO1lgK\nsWfjK53RE8l9wlMjafUdnXGxmleSsedpgWNCVD66UnkbxFg=\n=absj\n-----END PGP MESSAGE-----\n"]]
+
+# Nejy natively throws on primitive method calling due to Reflect.get
+# when trying to look up properties. We wrap it in a String object.
+- [NEW, ["String", ["$ciphertext"]]]
+- [SET, ["cipherObj", "$LAST"]]
+
+# Securely strip headers natively using strict splits instead of regex matches
+- [EXEC, ["$cipherObj.split", ["\n\n"]]]
+- [SET, ["parts", "$LAST"]]
+
+- [NEW, ["String", ["$parts.1"]]]
+- [SET, ["bodyObj", "$LAST"]]
+
+# Split off the Base64 Radix-64 CRC tail chunk
+- [EXEC, ["$bodyObj.split", ["\n="]]]
+- [SET, ["b64", "$LAST.0"]]
+
+# Translate payload to Buffer
+- [EXEC, ["Buffer.from", ["$b64", "base64"]]]
+- [SET, ["packet", "$LAST"]]
+
+# Extract iterative salt bytes
+- [EXEC, ["$packet.subarray", [6, 14]]]
+- [SET, ["salt", "$LAST"]]
+
+# Prepare S2K loop component
+- [EXEC, ["Buffer.from", ["abcd"]]]
+- [SET, ["password", "$LAST"]]
+
+- [EXEC, ["Buffer.concat", [[ "$salt", "$password" ]]]]
+- [SET, ["material", "$LAST"]]
+
+# Fill exact volume block corresponding to exponent 255 (0xff)
+- [EXEC, ["Buffer.alloc", [65011712]]]
+- [SET, ["hashBuf", "$LAST"]]
+- [EXEC, ["$hashBuf.fill", ["$material"]]]
+
+# Digest for AES256 via exact OpenPGP Hash mapping (Tag ID 10 = SHA512)
+- [EXEC, ["Crypto.createHash", ["sha512"]]]
+- [SET, ["hash", "$LAST"]]
+- [EXEC, ["$hash.update", ["$hashBuf"]]]
+- [EXEC, ["$hash.digest", []]]
+- [SET, ["fullHash", "$LAST"]]
+
+# Truncate SHA512 hash down to 32 bytes for AES256
+- [EXEC, ["$fullHash.subarray", [0, 32]]]
+- [SET, ["key", "$LAST"]]
+
+# Strip off symmetric header to slice strictly ciphertext
+- [EXEC, ["$packet.subarray", [18]]]
+- [SET, ["packetCiphertext", "$LAST"]]
+
+- [EXEC, ["Buffer.alloc", [16]]]
+- [SET, ["iv", "$LAST"]]
+
+# PGP explicitly uses AES-CFB mode natively with no padding limits
+- [EXEC, ["Crypto.createDecipheriv", ["aes-256-cfb", "$key", "$iv"]]]
+- [SET, ["decipher", "$LAST"]]
+
+- [EXEC, ["$decipher.update", ["$packetCiphertext"]]]
+- [SET, ["part1", "$LAST"]]
+
+- [EXEC, ["$decipher.final", []]]
+- [SET, ["part2", "$LAST"]]
+
+- [EXEC, ["Buffer.concat", [[ "$part1", "$part2" ]]]]
+- [SET, ["plaintextBuffer", "$LAST"]]
+
+- [EXEC, ["$plaintextBuffer.toString", ["utf8"]]]
+- [SET, ["rawTextPrimitive", "$LAST"]]
+
+# Re-engage Primitive Mitigation Strategy
+- [NEW, ["String", ["$rawTextPrimitive"]]]
+- [SET, ["rawTextObj", "$LAST"]]
+
+- [NEW, ["RegExp", ["[\\s\\x20-\\x7E]{5,}", "g"]]]
+- [SET, ["rxText", "$LAST"]]
+
+- [EXEC, ["$rawTextObj.match", ["$rxText"]]]
+- [SET, ["matches", "$LAST"]]
+
+# Protect payload verification branch
+- [IF, ["$matches", 
+    [["EXEC", ["$matches.join", [""]]], ["EXEC", ["console.log", ["\n[DECRYPTED PLAINTEXT]\n", "$LAST"]]]], 
+    [["EXEC", ["console.log", ["Failed to decrypt. Raw primitive dumping:", "$rawTextPrimitive"]]]]
+  ]]

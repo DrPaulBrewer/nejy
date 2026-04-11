@@ -162,17 +162,9 @@ class SecurityScanner {
     }
 }
 
-// --- Interpreter Setup (module-level globals kept for internal use) ---
+// --- Interpreter Setup  ---
 const require = createRequire(import.meta.url);
-const math = create(all);
 const fsProxy = { ...fs };
-
-// Programs no longer access these via global — they use ctx.mods.
-// Kept for internal interpreter use (IMPORT reads files, monitor reads process).
-global.math = math; global.os = os; global.YAML = YAML;
-global.console = console; global.fs = fsProxy; global.Reflect = Reflect;
-global.child_process = cp; global.cp = cp;
-[Date, Map, Set, URL, Buffer, Array, Object, Number, BigInt, String, Boolean].forEach(c => global[c.name] = c);
 
 // Default registry files loaded when manifest doesn’t specify its own.
 // 90-process.yaml is intentionally excluded from all default manifests.
@@ -206,12 +198,12 @@ const resolveArgs = (args, ctx) => {
 const resolvePath = (path, ctx) => {
     const pStr = String(path);
     const parts = pStr.split('.');
-    // $-prefixed paths walk ctx.vars; others walk ctx.mods (currently global)
+    // $-prefixed paths walk ctx.vars; others walk ctx.mods
     let fn = pStr.startsWith('$') ? ctx.vars : ctx.mods;
     let context = fn;
     for (const p of parts) {
         if (["prototype", "__proto__", "constructor"].includes(p)) throw new Error("SEC_BLOCK");
-        context = fn; fn = Reflect.get(fn, p);
+        context = fn; fn = (fn === null || fn === undefined) ? undefined : Reflect.get(Object(fn), p);
         if (fn === undefined) throw new Error(`Link Fail: ${path}`);
     }
     return { f: fn, c: context };
@@ -294,7 +286,7 @@ const commands = {
                     ctx.scanner.registryEntries,
                     ctx.scanner.manifest.maxRisk ?? 'LOW',
                     libRequestList
-                  )
+                )
                 : ctx.mods;
 
             // Extract only DEF commands from the library (libraries export functions, not side effects).
@@ -422,8 +414,8 @@ async function run(steps, ctx, em = false) {
 }
 
 function loadSetup(policyName, filename = "unknown") {
-    const policyPath = policyName.includes('/') 
-        ? policyName 
+    const policyPath = policyName.includes('/')
+        ? policyName
         : `config/security/policies/${policyName.toLowerCase()}.json`;
 
     if (!fs.existsSync(policyPath)) {
@@ -478,7 +470,7 @@ program.command('scan')
     .action((file, options) => {
         const prog = YAML.parse(fs.readFileSync(file, 'utf8'));
         const { scanner } = loadSetup(options.policy, file);
-        
+
         try {
             scanner.scan(prog);
             console.log("🛡️  Safety Scan Passed.");
@@ -507,16 +499,8 @@ program.command('run')
 
         const mods = await buildMods(registryEntries, policy.maxRisk ?? 'LOW', scanner.requestList);
         const mon = new ResourceMonitor(policy.quotas);
-        
+
         if (mods.fs) mon.instrumentFs(mods.fs);
-        if (mods.fetch !== undefined) {
-             // Only instrument fetch if global fetch is available.
-             // Our secureFetch wrapper handles the headers/methods automatically.
-             if (globalThis.fetch) {
-                  // We can optionally attach network bandwidth counting here, 
-                  // but monitor no longer intercepts the rules.
-             }
-        }
 
         const ctx = {
             mods,
