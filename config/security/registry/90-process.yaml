@@ -1,0 +1,16 @@
+entries:
+  # process is documented here for completeness.
+  # It must NOT be loaded in any default manifest.
+  # Even stdout.write is LOW here, but operators must explicitly opt-in.
+  - key: process
+    src: global
+    risk: INSANE
+    overrides:
+      process.hrtime: MEDIUM
+      process.stdout.write: LOW
+      process.stderr.write: LOW
+      process.env: INSANE
+      process.exit: INSANE
+      process.kill: INSANE
+      process.binding: INSANE
+      process.dlopen: INSANE

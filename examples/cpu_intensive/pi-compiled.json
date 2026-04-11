@@ -1,102 +1,23 @@
 [
-  [
-    "EXEC",
+  ["EXEC", ["console.log", ["--- Pre-Compiled Pi Calculation ---"]]],
+  ["SET",  ["sum", 0]],
+
+  ["TO", ["compiledMath", ["math.compile", ["$sum = $sum + ((-1)^$ITEM / (2 * $ITEM + 1))"]]]],
+
+  ["DEF", [
+    "ON_QUOTA",
     [
-      "console.log",
-      [
-        "--- Pre-Compiled Pi Calculation ---"
-      ]
+      ["EXEC", ["math.multiply", ["$sum", 4]]],
+      ["EXEC", ["console.log", ["🏁 Final Pi:",   "$LAST"]]],
+      ["EXEC", ["console.log", ["🔢 Iterations:", "$ITEM"]]],
+      ["EXEC", ["console.log", ["📊 Usage:",      "$USAGE"]]]
     ]
-  ],
-  [
-    "SET",
+  ]],
+
+  ["FOR_EACH", [
+    1000000000,
     [
-      "sum",
-      0
+      ["EXEC", ["$compiledMath.evaluate", ["$VARS"]]]
     ]
-  ],
-  
-  # 1. Compile the math expression once
-  [
-    "EXEC",
-    [
-      "math.compile",
-      [
-        "$sum = $sum + ((-1)^$ITEM / (2 * $ITEM + 1))"
-      ]
-    ]
-  ],
-  [
-    "SET",
-    [
-      "compiledMath",
-      "$LAST"
-    ]
-  ],
-  [
-    "DEF",
-    [
-      "ON_QUOTA",
-      [
-        [
-          "EXEC",
-          [
-            "math.multiply",
-            [
-              "$sum",
-              4
-            ]
-          ]
-        ],
-        [
-          "EXEC",
-          [
-            "console.log",
-            [
-              "🏁 Final Pi:",
-              "$LAST"
-            ]
-          ]
-        ],
-        [
-          "EXEC",
-          [
-            "console.log",
-            [
-              "🔢 Iterations:",
-              "$ITEM"
-            ]
-          ]
-        ],
-        [
-          "EXEC",
-          [
-            "console.log",
-            [
-              "📊 Usage:",
-              "$USAGE"
-            ]
-          ]
-        ]
-      ]
-    ]
-  ],
-  [
-    "FOR_EACH",
-    [
-      1000000000,
-      [
-      # 2. Execute the pre-compiled code using the $VARS scope
-      [
-          "EXEC",
-          [
-            "$compiledMath.evaluate",
-            [
-              "$VARS"
-            ]
-          ]
-        ]
-      ]
-    ]
-  ]
+  ]]
 ]

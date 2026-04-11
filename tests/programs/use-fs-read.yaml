@@ -1,0 +1,5 @@
+# use-fs-read.yaml
+# EXPECTED CORRECT: fs.readFileSync is MEDIUM risk.
+# Should be blocked at LOW, succeed at MEDIUM and HIGH.
+- ["EXEC", ["fs.readFileSync", ["package.json", "utf8"]]]
+- ["SET", ["RETURN", "read-ok"]]

@@ -1,0 +1,109 @@
+entries:
+  # --- Simple safe built-ins (wildcard mode, all LOW risk) ---
+
+  - key: Math
+    src: global
+    risk: LOW
+    # wildcard mode: all Math methods are LOW risk (Math.max, Math.floor, Math.random, etc.)
+
+  - key: Array
+    src: global
+    risk: LOW
+    # wildcard mode: expose entire Array constructor/namespace via Proxy
+
+  - key: Boolean
+    src: global
+    risk: LOW
+
+  - key: Number
+    src: global
+    risk: LOW
+
+  - key: String
+    src: global
+    risk: LOW
+
+  - key: BigInt
+    src: global
+    risk: LOW
+
+  - key: Date
+    src: global
+    risk: LOW
+
+  - key: Map
+    src: global
+    risk: LOW
+
+  - key: Set
+    src: global
+    risk: LOW
+
+  - key: URL
+    src: global
+    risk: LOW
+
+  # --- Regular Expressions ---
+
+  - key: RegExp
+    src: global
+    risk: MEDIUM
+    # MEDIUM risk due to synchronous thread-locking ReDoS (unmitigated CPU DoS) vulnerabilities.
+
+  # --- Object: base INSANE, carve out safe methods as LOW or HIGH ---
+
+  - key: Object
+    src: global
+    risk: INSANE
+    overrides:
+      Object.keys: LOW
+      Object.values: LOW
+      Object.entries: LOW
+      Object.fromEntries: LOW
+      Object.assign: LOW
+      Object.freeze: LOW
+      Object.isFrozen: LOW
+      Object.seal: LOW
+      Object.isSealed: LOW
+      Object.is: LOW
+      Object.create: LOW
+      Object.hasOwn: LOW
+
+  # --- Reflect: base INSANE, completely restricted to block dynamic property hijacking ---
+
+  - key: Reflect
+    src: global
+    risk: INSANE
+
+  # --- Buffer: mostly LOW, allocUnsafe is MEDIUM ---
+
+  - key: Buffer
+    src: global
+    risk: LOW
+    overrides:
+      Buffer.allocUnsafe: MEDIUM
+      Buffer.allocUnsafeSlow: MEDIUM
+
+  # --- Base64 Encoders ---
+
+  - key: atob
+    src: global
+    risk: LOW
+
+  - key: btoa
+    src: global
+    risk: LOW
+
+  # --- Web Crypto API ---
+
+  - key: crypto
+    src: global
+    risk: LOW
+    overrides:
+      # SubtleCrypto methods (generateKey, deriveBits, etc.) are computationally expensive (CPU DoS risk)
+      crypto.subtle: HIGH
+
+  - key: Crypto
+    src: import
+    module: node:crypto
+    risk: LOW

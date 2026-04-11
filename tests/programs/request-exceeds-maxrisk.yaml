@@ -1,0 +1,4 @@
+# request-exceeds-maxrisk.yaml
+# REQUEST fs.writeFileSync (HIGH risk) under LOW or MEDIUM policy — should SEC_BLOCK.
+- ["REQUEST", ["fs.writeFileSync"]]
+- ["EXEC", ["fs.writeFileSync", ["/tmp/test.txt", "hi"]]]

@@ -1,0 +1,21 @@
+entries:
+  - key: console
+    src: global
+    risk: LOW
+    methods:
+      console.log: LOW
+      console.error: LOW
+      console.warn: LOW
+      console.info: LOW
+      console.debug: LOW
+      console.table: LOW
+      console.dir: LOW
+      console.time: LOW
+      console.timeEnd: LOW
+      console.timeLog: LOW
+      console.count: LOW
+      console.countReset: LOW
+      console.group: LOW
+      console.groupEnd: LOW
+      console.assert: LOW
+      console.clear: LOW

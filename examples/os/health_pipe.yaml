@@ -1,26 +1,24 @@
 # health_pipe.yaml
 - ["EXEC", ["console.log", ["--- 🏥 Gathering System Data ---"]]]
 
-- ["PIPE", [
+# Capture UTC timestamp: run a PIPE as a single code block in TO
+- ["TO", ["utcTime", ["PIPE", [
     ["NEW", ["Date", []]],
-    "$LAST.toISOString",
-    ["SET", ["utcTime", "$LAST"]]
-  ]]
+    "$LAST.toISOString"
+  ]]]]
+
+- ["TO", ["host", ["os.hostname", []]]]
+
+- ["TO", ["pct", ["math.evaluate", ["100 - (os.freemem() / os.totalmem() * 100)", "$VARS"]]]]
+
+- ["SET", ["entries", [
+    ["hostname",          "$host"],
+    ["memory_usage_pct",  "$pct"],
+    ["timestamp_utc",     "$utcTime"]
+  ]]]
 
 - ["PIPE", [
-    ["EXEC", ["os.hostname", []]],
-    ["SET", ["host", "$LAST"]]
-  ]]
-
-- ["PIPE", [
-    ["EXEC", ["math.evaluate", ["100 - (os.freemem() / os.totalmem() * 100)", "$VARS"]]],
-    ["SET", ["pct", "$LAST"]],
-    ["SET", ["entries", [
-        ["hostname", "$host"],
-        ["memory_usage_pct", "$pct"],
-        ["timestamp_utc", "$utcTime"]
-      ]]],
     ["EXEC", ["Object.fromEntries", ["$entries"]]],
-    ["EXEC", ["YAML.stringify", ["$LAST"]]],
-    ["EXEC", ["console.log", ["\n📋 Final Health Snapshot:\n", "$LAST"]]]
+    ["EXEC", ["YAML.stringify",     ["$LAST"]]],
+    ["EXEC", ["console.log",        ["\n📋 Final Health Snapshot:\n", "$LAST"]]]
   ]]

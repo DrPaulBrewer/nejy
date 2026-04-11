@@ -1,0 +1,5 @@
+# use-fs-write.yaml
+# EXPECTED CORRECT: fs.writeFileSync is HIGH risk.
+# Should be blocked at LOW and MEDIUM, succeed at HIGH.
+- ["EXEC", ["fs.writeFileSync", ["/tmp/nejy-test-write.txt", "test"]]]
+- ["SET", ["RETURN", "write-ok"]]
