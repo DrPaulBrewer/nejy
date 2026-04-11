@@ -1,0 +1,46 @@
+# NEJY Code Review
+
+This document contains a comprehensive code review of the `nejy` codebase, exploring code smells, DRY (Don't Repeat Yourself) violations, clarity, unintended consequences, basic security, usability, and a comparison with the broader Node.js ecosystem.
+
+## 1. Code Smells and DRY (Don't Repeat Yourself) Violations
+
+*   **Duplicate Execution Logic:** There are two distinct execution engines in the codebase. `main.mjs` contains the primary `run()` and `commands` objects which process the AST logic. However, `lib/buildMods.mjs` implements its own `miniExecutor()` with duplicated resolution logic (`resolveMiniPath`, `resolveMiniArg`) and limited execution logic (`EXEC`, `SET`). This violates the DRY principle and increases the maintenance surface; bugs fixed in the main interpreter might not be fixed in the `buildMods` setup interpreter.
+*   **Hardcoded `KNOWN_COMMANDS`:** In `main.mjs`, `KNOWN_COMMANDS` is manually maintained as a `Set` in the `SecurityScanner`, separate from the actual keys of the `commands` object used by the runtime. If a new command is added to the runtime `commands`, it must also be added manually to `KNOWN_COMMANDS`. This should ideally be dynamically derived via `Object.keys(commands)`.
+*   **Property Access Blocklist Repetition:** The property blocklist (`prototype`, `__proto__`, `constructor`) is duplicated. It is checked in `SecurityScanner.checkPath` and again in `resolvePath` at runtime.
+
+## 2. Clarity and Usability
+
+*   **Tight CLI Coupling:** `main.mjs` tightly couples the command-line interface (using `commander`), runtime execution (`run`), static analysis (`SecurityScanner`), and standard output logging (`processOutput`, `console.log`). Furthermore, it litters execution flow with `process.exit(0)` and `process.exit(1)`. This makes it virtually impossible to import and use `nejy` programmatically as a library in another Node.js application without heavily monkey-patching or spawning child processes (which is what the test suite currently does in `tests/helpers/run.mjs`). A cleaner approach would be separating the core logic (`Interpreter`/`Engine` class) from the CLI runner.
+*   **Extremely Long File (`main.mjs`):** At over 400 lines, `main.mjs` acts as a God Object, handling everything from static scanning, argument resolution, instruction definition (`commands`), core loop (`run`), configuration loading (`loadSetup`), to CLI parsing. This code should be modularized.
+*   **Usage of `globalThis` and `global`:** The codebase successfully utilizes `globalThis` within `lib/buildMods.mjs` to fetch built-ins and uses `global` sparingly, correctly resolving globals through `buildMods` to limit their exposure. However, the runtime still permits some reflection trickery that needs to be actively guarded against. The way variables are resolved starting with `$` versus not is clever, but could confuse new users without extensive documentation.
+
+## 3. Unintended Consequences
+
+*   **Stack Overflow on Circular References:** The `resolveArgs` function in `main.mjs` (and `resolveMiniArg` in `lib/buildMods.mjs`) recurses deeply into objects and arrays to resolve variable references. If a user defines or creates a circular reference, this will result in a synchronous `Maximum call stack size exceeded` crash, completely bypassing the resource monitor and `QUOTA_EXCEEDED` error trapping.
+*   **Incomplete FS Quota Monitoring:** `monitor/index.js` hooks into `fs.writeFileSync` to track written bytes. However, it fails to instrument `fs.appendFileSync`, `fs.promises.writeFile`, `fs.promises.appendFile`, or other asynchronous/streaming write mechanisms. If a user bypasses `writeFileSync` using other allowed FS methods (depending on the registry config), the quota system can be trivially bypassed.
+*   **Event Loop Blocking (ReDoS / Synchronous Ops):** While `ResourceMonitor` tracks CPU time, it does so synchronously by checking in the main loop (`if (!em) ctx.mon.checkResources();`). If a single synchronous command (like a complex Regex evaluation resulting in catastrophic backtracking, or a massive synchronous file read) blocks the Node.js event loop, the monitor cannot interrupt it. The process will hang indefinitely until the OS kills it.
+
+## 4. Basic Security Considerations
+
+*   **Prototype Pollution Defenses:** The checks for `prototype`, `__proto__`, and `constructor` in `resolvePath` and the scanner are good first steps. However, they operate on string splitting. If a module returns an object that can be dynamically accessed via other means, attackers might find bypasses.
+*   **Blocklist vs. Allowlist (Scanner):** `SecurityScanner` treats unknown paths as `INSANE` (blocked by default), which acts as a strong allowlist approach. However, dynamic execution paths (like `$VARS`) bypass the static scanner entirely, falling back to runtime checks. The runtime depends heavily on the Proxy wrapper around `mods` which seems correctly implemented, but Proxy-based sandboxes in JavaScript historically have subtle bypasses (e.g., via `Function` constructors or exceptions leaking out of bounds).
+*   **URLPattern Dependency:** `lib/secureFetch.mjs` relies on `URLPattern`, which is a relatively new web API. While supported in Node >= 18 under experimental flags and native in Node 21+, depending on the exact execution environment, this could cause runtime failures if not properly polyfilled.
+*   **Environment Limits Bypass:** The `NEJY_MAX_RISK` environment variable is enforced at boot, which is excellent. However, user input handling (`$INPUT`) must be heavily scrutinized to ensure attackers cannot inject configuration overrides.
+
+## 5. Ecosystem Context and Duplication of Effort
+
+*   **Comparison to Existing Tools:** The goal of safely executing untrusted JavaScript/JSON-defined logic is not new.
+    *   **`vm2` (Deprecated):** Tried Proxy-based sandboxing but was ultimately defeated by fundamental Node.js architecture issues and deprecated.
+    *   **`isolated-vm`:** Uses V8 isolates to run untrusted code safely. This is the industry standard for hard sandboxing in Node.js.
+    *   **`js-yaml` / `yaml`:** The project relies on `yaml`, but adds an execution engine layer on top of the syntax tree.
+*   **Nejy's Specific Niche:** While `isolated-vm` is far more secure for executing arbitrary JS, `nejy` explicitly avoids full JavaScript execution. Instead, it forces users to write AST-like structures (Arrays of Opcodes). This makes `nejy` highly scannable (via `SecurityScanner`) *before* execution. The value proposition of `nejy` isn't "running untrusted JS safely," but rather "providing a statically analyzable, capability-based execution language for structured logic." It shares DNA with tools like YAMLScript, but specifically targets strict capability-bounding (LOW, MEDIUM, HIGH, INSANE) on existing Node.js modules rather than general-purpose compilation.
+
+## 6. Testing Practices
+
+*   **Testing Philosophy:** `nejy` relies primarily on integration/e2e testing via `child_process.exec` inside the test files (`tests/integration.test.mjs`, `tests/security.test.mjs`). While effective for macro-level functionality and preventing complete regressions, this is brittle and slow. Tests that spawn child processes are incredibly slow compared to unit tests and rely heavily on regex-parsing CLI output (e.g., `stdout.match(/```yaml\n([\s\S]+?)\n```/)`).
+*   **Coupling to Registry Configurations:** The test cases are heavily coupled to specific `config/security/manifests` and `config/security/registry` files. If someone changes `10-math.yaml` to make a function `MEDIUM` risk, the tests testing `LOW` risk execution will randomly start failing. This freezes the configuration format, discouraging iterations. Instead, the testing environment should have its *own* mocked registries to separate "Does the engine correctly deny execution of HIGH capabilities when set to LOW?" from "Is `math.evaluate` defined as HIGH or LOW?"
+*   **Missing Unit Tests:** The core files, `lib/buildMods.mjs` and `main.mjs`, are incredibly complex and have very few isolated unit tests for internal functions like `resolvePath` or `resolveArgs`. A bug in `resolveArgs` would manifest as a weird integration test failure rather than a precise unit failure. According to JS testing best practices, the testing pyramid is inverted here (heavy e2e, light unit testing).
+*   **Best Practices Review (goldbergyoni):** By standard JS testing best practices, the codebase violates the "Arrange, Act, Assert" structure in several areas due to the child process wrapper, struggles with isolated environments (since global environment variables affect `runNejy`), and lacks robust mocking strategies for filesystem interactions (creating actual files in tests instead of an in-memory FS proxy).
+
+## Conclusion
+`nejy` is a fascinating approach to capability-based security using structural programming syntax (YAML/JSON). To mature, it primarily needs heavy refactoring to decouple its CLI from the runtime, DRY up the `buildMods` mini-executor, patch holes in its resource monitor (handling async operations and circular references), and establish a robust, isolated unit testing suite that decouples from production registry configurations.
