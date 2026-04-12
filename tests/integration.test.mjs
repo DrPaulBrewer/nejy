@@ -64,7 +64,17 @@ const testCases = [
   // examples/cpu_intensive/pi-turbo-nilakantha.yaml (LOW risk)
   { code: "examples/cpu_intensive/pi-turbo-nilakantha.yaml", policy: "LOW", ok: i_timeout },
   { code: "examples/cpu_intensive/pi-turbo-nilakantha.yaml", policy: "MEDIUM", ok: i_timeout },
-  { code: "examples/cpu_intensive/pi-turbo-nilakantha.yaml", policy: "HIGH", ok: i_timeout }
+  { code: "examples/cpu_intensive/pi-turbo-nilakantha.yaml", policy: "HIGH", ok: i_timeout },
+
+  // tests/programs/use-literal.yaml (LOW risk)
+  { code: "tests/programs/use-literal.yaml", policy: "LOW", ok: true },
+  { code: "tests/programs/use-literal.yaml", policy: "MEDIUM", ok: true },
+  { code: "tests/programs/use-literal.yaml", policy: "HIGH", ok: true },
+
+  // tests/programs/use-inline-literal.yaml (LOW risk)
+  { code: "tests/programs/use-inline-literal.yaml", policy: "LOW", ok: true },
+  { code: "tests/programs/use-inline-literal.yaml", policy: "MEDIUM", ok: true },
+  { code: "tests/programs/use-inline-literal.yaml", policy: "HIGH", ok: true }
 ];
 
 testCases.forEach(({ code, policy, ok }) => {

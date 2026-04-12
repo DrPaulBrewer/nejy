@@ -1,0 +1,2 @@
+- ["LITERAL", { "__proto__": { "polluted": true } }]
+- ["SET", ["RETURN", "$LAST"]]

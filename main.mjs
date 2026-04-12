@@ -19,8 +19,36 @@ import { Command } from 'commander';
 // Interpreter-level commands are exempt from registry risk checks.
 // Programs cannot inject new command names; these are hard-coded in the interpreter.
 const KNOWN_COMMANDS = new Set([
-    "EXEC", "NEW", "SET", "DEF", "CALL", "PIPE", "IF", "FOR_EACH", "TRY", "IMPORT", "TO", "REQUEST", "SANDBOX"
+    "EXEC", "NEW", "SET", "DEF", "CALL", "PIPE", "IF", "FOR_EACH", "TRY", "IMPORT", "TO", "REQUEST", "SANDBOX", "LITERAL"
 ]);
+
+function checkNoPrototypePollution(obj) {
+    if (obj && typeof obj === 'object') {
+        const keys = Object.getOwnPropertyNames(obj);
+        if (keys.includes('__proto__') || keys.includes('prototype') || keys.includes('constructor')) {
+            throw new Error("SEC_BLOCK: LITERAL contains blocked prototype property");
+        }
+        for (const key of Object.keys(obj)) {
+            checkNoPrototypePollution(obj[key]);
+        }
+    }
+}
+
+function checkDataForLiterals(data) {
+    if (Array.isArray(data)) {
+        if (data[0] === "LITERAL" && data.length === 2) {
+            checkNoPrototypePollution(data[1]);
+            return; // Don't recurse into literal's internals as they are data
+        }
+        for (const item of data) {
+            checkDataForLiterals(item);
+        }
+    } else if (data && typeof data === 'object') {
+        for (const val of Object.values(data)) {
+            checkDataForLiterals(val);
+        }
+    }
+}
 
 class SecurityScanner {
     /**
@@ -110,6 +138,9 @@ class SecurityScanner {
                 this.checkPath(path);
             }
 
+            // Scan step arguments for inline LITERAL definitions to ensure prototype safety.
+            checkDataForLiterals(args);
+
             // For EXEC and NEW, check the explicit target callable path.
             if ((path === "EXEC" || path === "NEW") && Array.isArray(args) && typeof args[0] === 'string') {
                 this.checkPath(args[0]);
@@ -132,6 +163,13 @@ class SecurityScanner {
                     throw new Error(`SEC_BLOCK: 'IMPORT' requires LOW risk (Manifest: ${this.manifest.maxRisk})`);
             }
 
+            if (path === "LITERAL") {
+                if (this.riskMap["LOW"] > this.currentRisk)
+                    throw new Error(`SEC_BLOCK: 'LITERAL' requires LOW risk (Manifest: ${this.manifest.maxRisk})`);
+                // Note: checkDataForLiterals(args) already called above will handle inline arrays.
+                // The root-level args object for a LITERAL command is also a literal value.
+                checkNoPrototypePollution(args);
+            }
 
             // Explicitly recurse into code branches only — NOT into data args.
             // The old generic filter(Array.isArray) treated data arrays (e.g. SET values,
@@ -221,7 +259,13 @@ const isVar = (k, ctx) => typeof k === 'string' && k.startsWith('$') && (k in ct
 
 const resolveArgs = (args, ctx) => {
     if (isVar(args, ctx)) return ctx.vars[args];
-    if (Array.isArray(args)) return args.map(a => resolveArgs(a, ctx));
+    if (Array.isArray(args)) {
+        if (args[0] === 'LITERAL' && args.length === 2) {
+            checkNoPrototypePollution(args[1]);
+            return structuredClone(args[1]);
+        }
+        return args.map(a => resolveArgs(a, ctx));
+    }
     if (args && typeof args === 'object') return Object.fromEntries(Object.entries(args).map(([k, v]) => [k, resolveArgs(v, ctx)]));
     return args;
 };
@@ -261,6 +305,9 @@ const commands = {
         const { f } = resolvePath(resolveArgs(target, ctx), ctx);
         const args = resolveArgs(rawArgs || [], ctx);
         ctx.vars["$LAST"] = new f(...args);
+    },
+    LITERAL: (args, ctx) => {
+        ctx.vars["$LAST"] = structuredClone(args);
     },
     SET: ([name, val], ctx) => { ctx.vars[`$${name}`] = resolveArgs(val, ctx); },
     DEF: ([name, steps], ctx) => { ctx.functions[name] = steps; },

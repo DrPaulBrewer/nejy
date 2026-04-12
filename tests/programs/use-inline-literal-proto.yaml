@@ -1,0 +1,2 @@
+- ["SET", ["query", ["LITERAL", {"__proto__": {}}]]]
+- ["SET", ["RETURN", "$query"]]
