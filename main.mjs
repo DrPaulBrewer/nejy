@@ -9,8 +9,6 @@ import ResourceMonitor from './monitor/index.js';
 import { buildMods, loadRegistry, effectiveRisk, pathInRequest } from './lib/buildMods.mjs';
 import { Command } from 'commander';
 
-
-
 /**
  * 1. SECURITY SCANNER
  * Performs static analysis before execution.
