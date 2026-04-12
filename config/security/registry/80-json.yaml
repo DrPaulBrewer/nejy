@@ -1,0 +1,20 @@
+entries:
+  - key: zod
+    src: import
+    module: zod
+    risk: LOW
+
+  - key: jsonpointer
+    src: import
+    module: json-pointer
+    risk: LOW
+
+  - key: jsonpatch
+    src: import
+    module: fast-json-patch
+    risk: LOW
+
+  - key: jsonpath
+    src: import
+    module: ./safe-jsonpath.mjs
+    risk: LOW

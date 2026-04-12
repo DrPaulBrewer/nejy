@@ -248,6 +248,7 @@ const DEFAULT_REGISTRY = [
     'config/security/registry/40-os.yaml',
     'config/security/registry/50-fs.yaml',
     'config/security/registry/60-net.yaml',
+    'config/security/registry/80-json.yaml',
 ];
 
 // ---------------------------------------------------------------------------
@@ -285,6 +286,33 @@ const resolvePath = (path, ctx) => {
     return { f: fn, c: context };
 };
 
+function removePP(obj) {
+    if (obj !== null && typeof obj === 'object') {
+        const proto = Object.getPrototypeOf(obj);
+        if (proto === Object.prototype || proto === null) {
+            try {
+                const clean = structuredClone(obj);
+                Object.setPrototypeOf(clean, null);
+                delete clean.constructor;
+                return clean;
+            } catch (e) {
+                return obj;
+            }
+        }
+        if (proto === Array.prototype || Array.isArray(obj)) {
+            try {
+                // structuredClone creates a clean array with the default Array.prototype
+                const clean = structuredClone(obj);
+                delete clean.constructor;
+                return clean;
+            } catch (e) {
+                return obj;
+            }
+        }
+    }
+    return obj;
+}
+
 const commands = {
     EXEC: async ([target, rawArgs], ctx, em) => {
         const { f, c } = resolvePath(resolveArgs(target, ctx), ctx);
@@ -300,7 +328,7 @@ const commands = {
             return a;
         });
         const res = Reflect.apply(f, c, args);
-        ctx.vars["$LAST"] = (res instanceof Promise) ? await res : res;
+        ctx.vars["$LAST"] = removePP((res instanceof Promise) ? await res : res);
     },
     NEW: async ([target, rawArgs], ctx) => {
         const { f } = resolvePath(resolveArgs(target, ctx), ctx);
