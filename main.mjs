@@ -242,6 +242,7 @@ const fsProxy = { ...fs };
 const DEFAULT_REGISTRY = [
     'config/security/registry/00-builtins.yaml',
     'config/security/registry/10-math.yaml',
+    'config/security/registry/15-mathFunction.yaml',
     'config/security/registry/20-console.yaml',
     'config/security/registry/30-yaml-module.yaml',
     'config/security/registry/40-os.yaml',

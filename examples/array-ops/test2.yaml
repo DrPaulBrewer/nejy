@@ -1,0 +1,10 @@
+- ["EXEC", ["mathFunction", [["v", "i"], "1.0 / (1.0 + i)"]]]
+- ["SET", ["mapFunc", "$LAST"]]
+- ["EXEC", ["mathFunction", [["acc", "v", "i"], "acc + v"]]]
+- ["SET", ["reduceFunc", "$LAST"]]
+- ["NEW", ["Array", [1000000]]]
+- ["PIPE", [
+    ["$LAST.fill", [0]],
+    ["$LAST.map", ["$mapFunc"]],
+    ["$LAST.reduce", ["$reduceFunc"]]
+  ]]
