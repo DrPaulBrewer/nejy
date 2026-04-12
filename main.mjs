@@ -317,13 +317,18 @@ const commands = {
     EXEC: async ([target, rawArgs], ctx, em) => {
         const { f, c } = resolvePath(resolveArgs(target, ctx), ctx);
         const args = resolveArgs(rawArgs || [], ctx).map(a => {
-            if (a === "$VARS") return new Proxy(ctx.vars, {
+            if (a === "$VARS") return new Proxy(new Map(), {
                 // Falls back to ctx.mods so programs can pass $VARS as a scope object
                 // (e.g., math.evaluate(expr, $VARS) where expr references mods like os.freemem).
                 // This is safe: ctx.mods is already risk-filtered; it is NOT raw global.
-                get: (t, p) => t[p] ?? ctx.mods[p],
-                set: (t, p, v) => { t[p] = v; return true; },
-                has: (t, p) => p in t || p in ctx.mods
+                get: (t, p) => {
+                    if (p === 'get') return (k) => Object.hasOwn(ctx.vars, k) ? ctx.vars[k] : (Object.hasOwn(ctx.mods, k) ? ctx.mods[k] : undefined);
+                    if (p === 'set') return (k, v) => { ctx.vars[k] = v; return t; };
+                    if (p === 'has') return (k) => Object.hasOwn(ctx.vars, k) || Object.hasOwn(ctx.mods, k);
+                    if (p === 'keys') return () => [...Object.keys(ctx.vars), ...Object.keys(ctx.mods)].values();
+                    const val = Reflect.get(t, p);
+                    return typeof val === 'function' ? val.bind(t) : val;
+                }
             });
             return a;
         });
