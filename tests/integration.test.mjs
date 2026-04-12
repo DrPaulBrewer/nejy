@@ -69,7 +69,12 @@ const testCases = [
   // tests/programs/use-literal.yaml (LOW risk)
   { code: "tests/programs/use-literal.yaml", policy: "LOW", ok: true },
   { code: "tests/programs/use-literal.yaml", policy: "MEDIUM", ok: true },
-  { code: "tests/programs/use-literal.yaml", policy: "HIGH", ok: true }
+  { code: "tests/programs/use-literal.yaml", policy: "HIGH", ok: true },
+
+  // tests/programs/use-inline-literal.yaml (LOW risk)
+  { code: "tests/programs/use-inline-literal.yaml", policy: "LOW", ok: true },
+  { code: "tests/programs/use-inline-literal.yaml", policy: "MEDIUM", ok: true },
+  { code: "tests/programs/use-inline-literal.yaml", policy: "HIGH", ok: true }
 ];
 
 testCases.forEach(({ code, policy, ok }) => {

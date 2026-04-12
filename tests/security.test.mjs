@@ -72,6 +72,12 @@ test('B07: LITERAL with prototype pollution is blocked at LOW risk (SEC_BLOCK)',
   assert.ok(r.errorMsg && r.errorMsg.includes('SEC_BLOCK'), 'Expected SEC_BLOCK in error message');
 });
 
+test('B08: Inline LITERAL with prototype pollution is blocked at LOW risk (SEC_BLOCK)', async () => {
+  const r = await runNejy('tests/programs/use-inline-literal-proto.yaml', LOW);
+  assert.notStrictEqual(r.exitCode, 0, 'Program should be killed/fail');
+  assert.ok(r.errorMsg && r.errorMsg.includes('SEC_BLOCK'), 'Expected SEC_BLOCK in error message');
+});
+
 test('A08: child_process blocked at MEDIUM risk (SEC_BLOCK)', async () => {
   const r = await runNejy('tests/programs/use-child-process.yaml', MEDIUM);
   assert.notStrictEqual(r.exitCode, 0);

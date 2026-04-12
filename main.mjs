@@ -34,6 +34,22 @@ function checkNoPrototypePollution(obj) {
     }
 }
 
+function checkDataForLiterals(data) {
+    if (Array.isArray(data)) {
+        if (data[0] === "LITERAL" && data.length === 2) {
+            checkNoPrototypePollution(data[1]);
+            return; // Don't recurse into literal's internals as they are data
+        }
+        for (const item of data) {
+            checkDataForLiterals(item);
+        }
+    } else if (data && typeof data === 'object') {
+        for (const val of Object.values(data)) {
+            checkDataForLiterals(val);
+        }
+    }
+}
+
 class SecurityScanner {
     /**
      * @param {object}   manifest        - parsed manifest JSON (has maxRisk)
@@ -122,6 +138,9 @@ class SecurityScanner {
                 this.checkPath(path);
             }
 
+            // Scan step arguments for inline LITERAL definitions to ensure prototype safety.
+            checkDataForLiterals(args);
+
             // For EXEC and NEW, check the explicit target callable path.
             if ((path === "EXEC" || path === "NEW") && Array.isArray(args) && typeof args[0] === 'string') {
                 this.checkPath(args[0]);
@@ -147,13 +166,9 @@ class SecurityScanner {
             if (path === "LITERAL") {
                 if (this.riskMap["LOW"] > this.currentRisk)
                     throw new Error(`SEC_BLOCK: 'LITERAL' requires LOW risk (Manifest: ${this.manifest.maxRisk})`);
-                if (args !== undefined) {
-                    // For LITERAL, the argument itself is the value (which might be an object, string, array, etc)
-                    // The argument might be a list containing the literal value, or just the literal value.
-                    // But in scan, 'args' is the second element of the step array.
-                    // Wait, `args` in analyze(steps) is the second element of `[path, args]`.
-                    checkNoPrototypePollution(args);
-                }
+                // Note: checkDataForLiterals(args) already called above will handle inline arrays.
+                // The root-level args object for a LITERAL command is also a literal value.
+                checkNoPrototypePollution(args);
             }
 
             // Explicitly recurse into code branches only — NOT into data args.
@@ -244,7 +259,13 @@ const isVar = (k, ctx) => typeof k === 'string' && k.startsWith('$') && (k in ct
 
 const resolveArgs = (args, ctx) => {
     if (isVar(args, ctx)) return ctx.vars[args];
-    if (Array.isArray(args)) return args.map(a => resolveArgs(a, ctx));
+    if (Array.isArray(args)) {
+        if (args[0] === 'LITERAL' && args.length === 2) {
+            checkNoPrototypePollution(args[1]);
+            return structuredClone(args[1]);
+        }
+        return args.map(a => resolveArgs(a, ctx));
+    }
     if (args && typeof args === 'object') return Object.fromEntries(Object.entries(args).map(([k, v]) => [k, resolveArgs(v, ctx)]));
     return args;
 };
@@ -286,13 +307,7 @@ const commands = {
         ctx.vars["$LAST"] = new f(...args);
     },
     LITERAL: (args, ctx) => {
-        // LITERAL arguments should be the literal value directly, but in run() it passes `args`
-        // Wait, standard commands get `args` which is the second element of the step array.
-        // If step is `["LITERAL", { "some": "object" }]`, args is `{ "some": "object" }`.
-        // Let's handle both.
-        const literalValue = args;
-        checkNoPrototypePollution(literalValue);
-        ctx.vars["$LAST"] = structuredClone(literalValue);
+        ctx.vars["$LAST"] = structuredClone(args);
     },
     SET: ([name, val], ctx) => { ctx.vars[`$${name}`] = resolveArgs(val, ctx); },
     DEF: ([name, steps], ctx) => { ctx.functions[name] = steps; },
