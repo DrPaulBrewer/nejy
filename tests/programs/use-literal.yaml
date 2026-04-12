@@ -1,0 +1,2 @@
+- ["LITERAL", { "some": "object", "with": [1, 2, 3] }]
+- ["SET", ["RETURN", "$LAST"]]

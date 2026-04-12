@@ -19,8 +19,20 @@ import { Command } from 'commander';
 // Interpreter-level commands are exempt from registry risk checks.
 // Programs cannot inject new command names; these are hard-coded in the interpreter.
 const KNOWN_COMMANDS = new Set([
-    "EXEC", "NEW", "SET", "DEF", "CALL", "PIPE", "IF", "FOR_EACH", "TRY", "IMPORT", "TO", "REQUEST", "SANDBOX"
+    "EXEC", "NEW", "SET", "DEF", "CALL", "PIPE", "IF", "FOR_EACH", "TRY", "IMPORT", "TO", "REQUEST", "SANDBOX", "LITERAL"
 ]);
+
+function checkNoPrototypePollution(obj) {
+    if (obj && typeof obj === 'object') {
+        const keys = Object.getOwnPropertyNames(obj);
+        if (keys.includes('__proto__') || keys.includes('prototype') || keys.includes('constructor')) {
+            throw new Error("SEC_BLOCK: LITERAL contains blocked prototype property");
+        }
+        for (const key of Object.keys(obj)) {
+            checkNoPrototypePollution(obj[key]);
+        }
+    }
+}
 
 class SecurityScanner {
     /**
@@ -132,6 +144,17 @@ class SecurityScanner {
                     throw new Error(`SEC_BLOCK: 'IMPORT' requires LOW risk (Manifest: ${this.manifest.maxRisk})`);
             }
 
+            if (path === "LITERAL") {
+                if (this.riskMap["LOW"] > this.currentRisk)
+                    throw new Error(`SEC_BLOCK: 'LITERAL' requires LOW risk (Manifest: ${this.manifest.maxRisk})`);
+                if (args !== undefined) {
+                    // For LITERAL, the argument itself is the value (which might be an object, string, array, etc)
+                    // The argument might be a list containing the literal value, or just the literal value.
+                    // But in scan, 'args' is the second element of the step array.
+                    // Wait, `args` in analyze(steps) is the second element of `[path, args]`.
+                    checkNoPrototypePollution(args);
+                }
+            }
 
             // Explicitly recurse into code branches only — NOT into data args.
             // The old generic filter(Array.isArray) treated data arrays (e.g. SET values,
@@ -261,6 +284,15 @@ const commands = {
         const { f } = resolvePath(resolveArgs(target, ctx), ctx);
         const args = resolveArgs(rawArgs || [], ctx);
         ctx.vars["$LAST"] = new f(...args);
+    },
+    LITERAL: (args, ctx) => {
+        // LITERAL arguments should be the literal value directly, but in run() it passes `args`
+        // Wait, standard commands get `args` which is the second element of the step array.
+        // If step is `["LITERAL", { "some": "object" }]`, args is `{ "some": "object" }`.
+        // Let's handle both.
+        const literalValue = args;
+        checkNoPrototypePollution(literalValue);
+        ctx.vars["$LAST"] = structuredClone(literalValue);
     },
     SET: ([name, val], ctx) => { ctx.vars[`$${name}`] = resolveArgs(val, ctx); },
     DEF: ([name, steps], ctx) => { ctx.functions[name] = steps; },
