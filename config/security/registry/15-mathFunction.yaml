@@ -1,0 +1,5 @@
+entries:
+  - key: mathFunction
+    src: import
+    module: ./mathFunction.mjs
+    risk: LOW
