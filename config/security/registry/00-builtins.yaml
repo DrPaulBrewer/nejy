@@ -50,11 +50,12 @@ entries:
     risk: MEDIUM
     # MEDIUM risk due to synchronous thread-locking ReDoS (unmitigated CPU DoS) vulnerabilities.
 
-  # --- Object: base INSANE, carve out safe methods as LOW or HIGH ---
+    # --- Object: base INSANE, carve out safe methods as LOW or HIGH ---
 
   - key: Object
     src: global
     risk: INSANE
+    freezePrototypes: false
     overrides:
       Object.keys: LOW
       Object.values: LOW
