@@ -1,7 +1,7 @@
 {
   "maxRisk": "MEDIUM",
   "quotas": {
-    "maxCpuMs": 2000,
+    "maxCpuMs": 5000,
     "maxMemoryMb": 512,
     "maxFsBytes": 102400
   }

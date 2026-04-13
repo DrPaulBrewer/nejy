@@ -1,0 +1,1 @@
+[["WORKER",["child_thread",[["DEF",["MY_COMPUTE",[["SET",["x",10]],["SET",["y",20]],["EXEC",["math.add",["$x","$y"]]]]]],["RPC_EXPOSE",["compute","MY_COMPUTE"]]]]],["EXEC",["Array.from",[["LITERAL",{"length":50000}]]]],["EXEC",["$LAST.fill",[0]]],["RPC_CALL",["child_thread","compute",{"x":10,"y":20}]],["SET",["final","$LAST"]]]

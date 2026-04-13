@@ -1,0 +1,13 @@
+--- security_scanner.mjs
++++ security_scanner.mjs
+@@ -214,12 +214,11 @@
+                 childScanner.analyze(subprogram);
+             }
+             else if (path === 'CPU') {
+                 if (this.riskMap["MEDIUM"] > this.currentRisk)
+                     throw new Error(`SEC_BLOCK: 'CPU' requires MEDIUM risk (Manifest: ${this.manifest.maxRisk})`);
+-                this.analyze(args);
+             }
+             else if (path === 'WORKER') {
+                 if (Array.isArray(args[1])) this.analyze(args[1]);
+             }

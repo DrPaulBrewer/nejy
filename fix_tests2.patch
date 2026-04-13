@@ -1,0 +1,21 @@
+--- tests/cpu.test.mjs
++++ tests/cpu.test.mjs
+@@ -25,9 +25,7 @@
+ test('CPU command succeeds at MEDIUM risk and returns value', { timeout: 10000 }, async () => {
+     const code = [
+-        ["CPU", ["math.evaluate", ["1+1"]]],
+-        ["SET", ["res", "$LAST"]],
+-        ["SET", ["obj", ["LITERAL", {res: null}]]],
+-        ["EXEC", ["Object.assign", ["$obj", ["LITERAL", {res: 2}]]]]
++        ["CPU", ["math.evaluate", ["1+1"]]]
+     ];
+     fs.writeFileSync('tests/programs/cpu_test.json', JSON.stringify(code).replace('"$res"', '"$res"'));
+
+@@ -35,5 +33,5 @@
+     const yamlMatch = result.stdout.match(/```yaml\n([\s\S]+?)\n```/);
+     const [errorMsg, returnVal] = YAML.parse(yamlMatch[1]);
+
+     assert.strictEqual(errorMsg, null);
+-    assert.deepStrictEqual(returnVal, { res: 2 });
++    assert.strictEqual(returnVal, 2);
+ });

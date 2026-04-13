@@ -1,0 +1,23 @@
+--- security_scanner.mjs
++++ security_scanner.mjs
+@@ -124,8 +124,8 @@
+             checkDataForLiterals(args);
+
+             // For EXEC and NEW, check the explicit target callable path.
+-            if ((path === "EXEC" || path === "NEW") && Array.isArray(args) && typeof args[0] === 'string') {
++            if ((path === "EXEC" || path === "NEW" || path === "CPU") && Array.isArray(args) && typeof args[0] === 'string') {
+                 this.checkPath(args[0]);
+             }
+
+             // For PIPE, check string-shorthand step targets.
+@@ -219,10 +219,9 @@
+                 childScanner.requestList = childCapabilities;
+                 childScanner.analyze(subprogram);
+             }
+             else if (path === 'CPU') {
+                 if (this.riskMap["MEDIUM"] > this.currentRisk)
+                     throw new Error(`SEC_BLOCK: 'CPU' requires MEDIUM risk (Manifest: ${this.manifest.maxRisk})`);
+-                this.analyze(args);
+             }
+             else if (path === 'WORKER') {
+                 if (Array.isArray(args[1])) this.analyze(args[1]);

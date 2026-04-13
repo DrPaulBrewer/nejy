@@ -1,0 +1,1 @@
+[["WORKER",["child_thread",[["SET",["foo","bar"]]]]],["SET",["spawn_result","$LAST"]],["SET",["foo","$spawn_result"]]]

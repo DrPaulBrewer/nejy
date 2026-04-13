@@ -1,0 +1,14 @@
+--- cpu.test.mjs
++++ cpu.test.mjs
+@@ -25,9 +25,10 @@
+ test('CPU command succeeds at MEDIUM risk and returns value', { timeout: 10000 }, async () => {
+     const code = [
+         ["CPU", ["math.evaluate", ["1+1"]]],
+         ["SET", ["res", "$LAST"]],
+-        ["LITERAL", "$LAST"]
++        ["SET", ["obj", ["LITERAL", {res: null}]]],
++        ["EXEC", ["Object.assign", ["$obj", ["LITERAL", {res: "$res"}]]]]
+     ];
+     fs.writeFileSync('tests/programs/cpu_test.json', JSON.stringify(code).replace('"$res"', '"$res"'));
+
+     const result = await execAsync(`node main.mjs run tests/programs/cpu_test.json --policy MEDIUM`);

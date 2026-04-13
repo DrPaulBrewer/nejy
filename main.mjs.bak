@@ -196,7 +196,7 @@ program.command('run')
         const monitorInterval = setInterval(() => {
             try {
                 mon.usage.fsBytes += Atomics.exchange(quotaArray, 1, 0); // Pull FS bytes
-                const isCpuBound = Atomics.load(quotaArray, 2) > 0;
+                const isCpuBound = Atomics.load(quotaArray, 2) === 1;
                 if (!isCpuBound) mon.checkResources();
                 // If we get here, not exhausted. Update SAB so workers can see
                 Atomics.store(quotaArray, 0, 0); // isExhausted = 0

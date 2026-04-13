@@ -195,9 +195,7 @@ program.command('run')
         // Supervisor Loop to update memory/CPU
         const monitorInterval = setInterval(() => {
             try {
-                mon.usage.fsBytes += Atomics.exchange(quotaArray, 1, 0); // Pull FS bytes
-                const isCpuBound = Atomics.load(quotaArray, 2) > 0;
-                if (!isCpuBound) mon.checkResources();
+                mon.checkResources();
                 // If we get here, not exhausted. Update SAB so workers can see
                 Atomics.store(quotaArray, 0, 0); // isExhausted = 0
             } catch (err) {

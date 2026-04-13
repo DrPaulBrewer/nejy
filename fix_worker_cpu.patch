@@ -1,0 +1,11 @@
+--- worker.mjs
++++ worker.mjs
+@@ -281,7 +281,7 @@
+         if (ctx.mon.quotaArray) Atomics.add(ctx.mon.quotaArray, 2, 1);
+         try {
+-            // Evaluate the sub-steps in args as inline execution blocks
+-            await run(args, ctx, em);
++            await commands.EXEC(args, ctx, em);
+         } finally {
+             if (ctx.mon.quotaArray) Atomics.sub(ctx.mon.quotaArray, 2, 1);
+         }

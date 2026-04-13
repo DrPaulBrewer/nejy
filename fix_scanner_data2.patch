@@ -1,0 +1,17 @@
+--- security_scanner.mjs
++++ security_scanner.mjs
+@@ -19,13 +19,7 @@
+     if (Array.isArray(data)) {
+         if (data[0] === "LITERAL" && data.length === 2) {
+             checkNoPrototypePollution(data[1]);
+-        }
+-        if (data[0] === 'CPU' && data.length === 2) {
+-            if (1 > 0)
+-                throw new Error(`SEC_BLOCK: 'CPU' requires MEDIUM risk (Manifest: ${this.manifest.maxRisk})`);
+-            checkDataForLiterals(data[1]);
+-            return;
+-            return; // Don't recurse into literal's internals as they are data
++            return; // Don't recurse into literal's internals as they are data
+         }
+         for (const item of data) {
+             checkDataForLiterals(item);

@@ -1,0 +1,15 @@
+--- rpc.test.mjs
++++ rpc.test.mjs
+@@ -31,8 +31,10 @@
+     const code = [
+         ["WORKER", ["child_thread", [
+             ["DEF", ["MY_COMPUTE", [
+-                ["SET", ["x", 10]],
+-                ["SET", ["y", 20]],
++                ["PIPE", ["$INPUT", ["$LAST.x"]]],
++                ["SET", ["x", "$LAST"]],
++                ["PIPE", ["$INPUT", ["$LAST.y"]]],
++                ["SET", ["y", "$LAST"]],
+                 ["EXEC", ["math.add", ["$x", "$y"]]],
+             ]]],
+             ["RPC_EXPOSE", ["compute", "MY_COMPUTE"]]

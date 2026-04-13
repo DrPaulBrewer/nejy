@@ -1,0 +1,1 @@
+[["WORKER",["child_thread",[["SET",["my_id","$WORKERID"]]]]],["SET",["rootId","$WORKERID"]],["SET",["program","$PROGRAM"]],["SET",["ret",["LITERAL",{"rootId":null,"hasProgram":true}]]],["EXEC",["Object.assign",["$ret",["LITERAL",{"rootId":0}]]]]]

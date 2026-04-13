@@ -1,0 +1,46 @@
+--- main.mjs
++++ main.mjs
+@@ -9,6 +9,7 @@
+ import { SecurityScanner } from './security_scanner.mjs';
+ import { Command } from 'commander';
+ import { Worker } from 'node:worker_threads';
++import ResourceMonitor from './monitor/index.js';
+ import { JSONRPCServer, JSONRPCClient } from 'json-rpc-2.0';
+
+ const DEFAULT_REGISTRY = [
+@@ -104,11 +105,14 @@
+         const activeWorkers = new Map();
+         const rpcServer = new JSONRPCServer();
+         let nextWorkerId = 1;
++        const mon = new ResourceMonitor(policy.quotas);
++        const quotaSab = new SharedArrayBuffer(3 * 4); // 3x Int32: [isExhausted, fsBytes, memoryMb]
++        const quotaArray = new Int32Array(quotaSab);
+
+         function createWorker(id, code, targetPolicy, requestList, isRoot = false) {
+             const workerIdNumber = isRoot ? 0 : nextWorkerId++;
+             const worker = new Worker(new URL('./worker.mjs', import.meta.url), {
+-                workerData: { scannedProg: code, policy: targetPolicy, registryEntries, requestList, program: code, workerId: workerIdNumber }
++                workerData: { scannedProg: code, policy: targetPolicy, registryEntries, requestList, program: code, workerId: workerIdNumber, quotaSab }
+             });
+
+             const rpcClient = new JSONRPCClient((request) => worker.postMessage(request));
+@@ -188,6 +192,20 @@
+             return target.rpcClient.request(method, params);
+         });
+
++        // Supervisor Loop to update memory/CPU across the entire Node process
++        const monitorInterval = setInterval(() => {
++            try {
++                mon.usage.fsBytes += Atomics.exchange(quotaArray, 1, 0); // pull delta
++                mon.checkResources();
++                Atomics.store(quotaArray, 0, 0); // Not exhausted
++            } catch (err) {
++                Atomics.store(quotaArray, 0, 1); // Signal workers to die
++                clearInterval(monitorInterval);
++                console.error(`❌ Fatal Error: ${err.message}`);
++                processOutput(err.message, null, mon.usage);
++                process.exit(1);
++            }
++        }, 100);
+         createWorker("root", scannedProg, policy, scanner.requestList, true);
+     });
