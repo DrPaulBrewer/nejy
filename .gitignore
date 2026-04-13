@@ -3,4 +3,7 @@ node_modules
 .env.local
 *.pem
 *.log
+scratch
+workspace
+.workspace
 
