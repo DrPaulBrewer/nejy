@@ -1,5 +1,5 @@
 {
-  "name": "nejy",
+  "name": "@eaftc/nejy",
   "version": "0.51.0",
   "description": "an interpreter calling node.js modules, described by JSON(5) or YAML",
   "keywords": [
