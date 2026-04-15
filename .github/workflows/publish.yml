@@ -74,4 +74,4 @@ jobs:
 
       - name: Publish to NPM
         if: steps.check_gitignore.outputs.gitignore_exists == 'true' && steps.check_version.outputs.version_changed == 'true'
-        run: npm publish --access public
+        run: npm publish --provenance --access public

@@ -1,6 +1,6 @@
 {
   "name": "@eaftc/nejy",
-  "version": "0.61.0",
+  "version": "0.61.1",
   "description": "an interpreter calling node.js modules, described by JSON(5) or YAML",
   "keywords": [
     "insane"
@@ -27,5 +27,12 @@
     "mathjs": "^15.2.0",
     "yaml": "^2.8.3",
     "zod": "^4.3.6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DrPaulBrewer/nejy.git"
+  },
+  "publishConfig": {
+    "provenance": true
   }
 }
