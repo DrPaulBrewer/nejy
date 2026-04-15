@@ -75,12 +75,12 @@ program.command('scan')
     .description('Statically analyze a program without executing it')
     .argument('<file>', 'Path to the .json or .yaml program')
     .option('-p, --policy <policy>', 'Policy level to enforce (LOW, MEDIUM, HIGH)', 'LOW')
-    .action((file, options) => {
+    .action(async (file, options) => {
         const prog = YAML.parse(fs.readFileSync(file, 'utf8'));
         const { scanner } = loadSetup(options.policy, file);
 
         try {
-            scanner.scan(prog);
+            await scanner.scan(prog);
             console.log("🛡️  Safety Scan Passed.");
             process.exit(0);
         } catch (e) {
@@ -99,7 +99,7 @@ program.command('run')
 
         let scannedProg = prog;
         try {
-            scannedProg = scanner.scan(prog) ?? prog;
+            scannedProg = (await scanner.scan(prog)) ?? prog;
         } catch (e) {
             processOutput(e.message, null, null);
             process.exit(1);
