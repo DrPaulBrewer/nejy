@@ -113,7 +113,6 @@ program.command('run')
         const ctx = {
             mods,
             vars: { "$LAST": null, "$ERROR": null, "$ITEM": null, "$USAGE": null, "$INPUT": null, "$RETURN": null },
-            functions: {},
             mon,
             scanner,
         };

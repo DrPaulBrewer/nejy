@@ -116,22 +116,22 @@ test('SANDBOX: context object sets new initial vars', async () => {
 test('SANDBOX: functions are inherited but isolated', async () => {
     const codePath = 'tests/sandbox/test_funcs.json';
     const program = [
-        ["DEF", ["HELLO", [
+        ["DEF", ["HELLO", [], [
             ["SET", ["LAST", "world"]]
         ]]],
         ["SANDBOX", ["copy", [
-            ["CALL", ["HELLO"]],
+            ["EXEC", ["$HELLO", []]],
             ["TO", ["first", "$LAST"]],
-            ["DEF", ["LOCAL", [
+            ["DEF", ["LOCAL", [], [
                 ["SET", ["LAST", "local"]]
             ]]],
-            ["CALL", ["LOCAL"]],
+            ["EXEC", ["$LOCAL", []]],
             ["SET", ["RETURN", ["$first", "$LAST"]]]
         ]]],
         ["TO", ["sb_res", "$LAST"]],
-        // CALL LOCAL should fail in parent
+        // LOCAL call should fail in parent
         ["TRY", [
-            [["CALL", ["LOCAL"]]],
+            [["EXEC", ["$LOCAL", []]]],
             [["SET", ["RETURN", ["$sb_res", "$ERROR"]]]]
         ]]
     ];
@@ -141,5 +141,5 @@ test('SANDBOX: functions are inherited but isolated', async () => {
 
     assert.strictEqual(result.exitCode, 0, result.errorMsg || result.stderr);
     assert.deepStrictEqual(result.returnVal[0], ["world", "local"]);
-    assert.match(result.returnVal[1], /Fn Undefined: LOCAL/);
+    assert.match(result.returnVal[1] || "", /Link Fail/);
 });
