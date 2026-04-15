@@ -24,4 +24,10 @@ Welcome! If you are an AI agent working on the `nejy` project, this document pro
 - **Security Layers**: `nejy` employs a "belt and suspenders" approach. **Do not remove any pre-existing security code**, even if it seems redundant. Features like prototype pollution protections (via `removePP` or freezing module prototypes) are critical.
 - **Testing**: The project uses the native Node.js test runner. Always run tests using `npm run test:all` to ensure regressions are caught.
 - **Test-Driven Development (TDD)**: Write failing tests before implementing new functionality. Do not mock outputs simply to pass tests (Feynman principle: "don't fool yourself").
-- **External Dependencies**: Prefer leveraging the built-in Node.js standard library or existing high-quality modules rather than writing complex custom logic where possible.
+
+## 4. Leverage Existing Dependencies
+Prefer leveraging the built-in Node.js standard library or existing high-quality modules rather than writing complex custom logic where possible. You should review `package.json` to see what is already available. For example:
+- **`zod`**: Use for strict, generated-code-free schema validation.
+- **`mathjs`**: Use for safe mathematical parsing and evaluation.
+- **`jsonpath-plus`**: Use for advanced JSON querying.
+- **`fast-json-patch` / `json-pointer`**: Use for JSON patching and manipulations.
