@@ -51,7 +51,6 @@ The following variables are managed by the runtime and have special meaning with
 | **CALL** | `[name, input]` | Sub-Result | Executes a `DEF` block. Maps `input` to `$INPUT` and restores context on completion. |
 | **RETURN** | `[value]` | Value | Terminates current function and returns `value` to the caller via a `RETURN_SIGNAL`. |
 | **TRY** | `[[T], [C]]` | Null | Exception handling. Error messages are stored in `$ERROR`. |
-| **IMPORT** | `[source]` | Null | Loads `DEF` blocks from local paths or remote URLs into the registry. |
 | **SAVE_STATE** | `[path]` | Null | Serializes all non-functional variables in the pool to a YAML file. |
 | **RESTORE_STATE**| `[path]` | Null | Merges a YAML state file back into the live variable pool. |
 

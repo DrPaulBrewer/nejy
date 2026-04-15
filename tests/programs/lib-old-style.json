@@ -1,3 +1,0 @@
-{
-  "greet": [["EXEC", ["console.log", ["Hello from old-style library!"]]]]
-}

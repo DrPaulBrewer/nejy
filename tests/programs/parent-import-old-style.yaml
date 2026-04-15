@@ -1,6 +1,0 @@
-# parent-import-old-style.yaml — backwards compatibility test
-# Parent imports an old-style object-map library (no REQUEST header).
-# Old-style library functions inherit the parent's capabilities.
-- ["REQUEST", ["console.log"]]
-- ["IMPORT", ["tests/programs/lib-old-style.json"]]
-- ["CALL", ["greet", null]]

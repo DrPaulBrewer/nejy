@@ -15,7 +15,7 @@ Nejy scripts are built from a fixed set of commands. Every command is an array f
 * **PIPE:** Allows chaining operations where the result of one step flows directly into the next via `$LAST`.
 * **DEF & CALL:** Defining (`DEF`) and executing (`CALL`) reusable custom functions within your script.
 * **IF & FOR_EACH:** Standard control flow for branching and looping.
-* **IMPORT & SANDBOX:** For modularity and execution of nested programs within stricter risk constraints.
+* **SANDBOX:** For execution of nested programs within stricter risk constraints.
 * **REQUEST:** The script's permission manifest. It must be the first command if used, declaring exactly which external paths it will touch.
 * **LITERAL:** Assigns a raw JSON/YAML object directly without the interpreter attempting to evaluate variables inside it.
 
