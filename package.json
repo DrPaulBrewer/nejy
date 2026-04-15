@@ -31,8 +31,6 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/DrPaulBrewer/nejy.git"
-  },
-  "publishConfig": {
-    "provenance": true
   }
 }
+
