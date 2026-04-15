@@ -31,3 +31,12 @@ Prefer leveraging the built-in Node.js standard library or existing high-quality
 - **`mathjs`**: Use for safe mathematical parsing and evaluation.
 - **`jsonpath-plus`**: Use for advanced JSON querying.
 - **`fast-json-patch` / `json-pointer`**: Use for JSON patching and manipulations.
+
+## 5. Writing NEJY Scripts
+When writing `nejy` scripts (e.g. for testing or examples), adhere to the following best practices:
+- **Format**: Prefer **YAML** over JSON for all `nejy` scripts unless JSON is explicitly requested.
+- **Discovery**: Scan the source code (particularly `lib/interp/commands.mjs`) for available commands, and explore the registry configurations (`config/security/registry/`) so you know what capabilities and modules are available.
+- **Command Choice**:
+  - Prefer using the `TO` command for mapping or assigning results directly, rather than running `EXEC` followed by referencing `$LAST`.
+  - Prefer using the `PIPE` command when executing method chaining.
+- **Functions**: Prefer using the configured `mathFunction` capability to create JavaScript functions dynamically from mathematical expressions, rather than passing raw string callbacks or building functions manually.
