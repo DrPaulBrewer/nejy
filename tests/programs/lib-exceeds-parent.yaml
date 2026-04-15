@@ -1,8 +1,0 @@
-# lib-exceeds-parent.yaml — library that exceeds a narrow parent REQUEST
-# Requests "console.log" in addition to "math".
-# If parent only has REQUEST ["math"], importing this will SEC_BLOCK.
-- ["REQUEST", ["math", "console.log"]]
-- ["DEF", ["compute", [
-    ["EXEC", ["math.evaluate", ["2 + 2"]]],
-    ["EXEC", ["console.log", ["Compute result:", "$LAST"]]]
-  ]]]

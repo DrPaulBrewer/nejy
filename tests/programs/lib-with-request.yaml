@@ -1,7 +1,0 @@
-# lib-with-request.yaml — reusable library
-# Declares what it needs; parent must REQUEST at least these capabilities.
-- ["REQUEST", ["math", "console.log"]]
-- ["DEF", ["computePi", [
-    ["EXEC", ["math.evaluate", ["3.14159265358979"]]],
-    ["EXEC", ["console.log", ["Pi:", "$LAST"]]]
-  ]]]

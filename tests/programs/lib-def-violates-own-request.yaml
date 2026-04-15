@@ -1,8 +1,0 @@
-# lib-def-violates-own-request.yaml
-# Library declares REQUEST ["math"] only, but its DEF body uses console.log.
-# Importing this should SEC_BLOCK (DEF body scanned against library's own REQUEST).
-- ["REQUEST", ["math"]]
-- ["DEF", ["badFunction", [
-    ["EXEC", ["math.evaluate", ["1 + 1"]]],
-    ["EXEC", ["console.log", ["This should be blocked:", "$LAST"]]]
-  ]]]

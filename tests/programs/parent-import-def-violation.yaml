@@ -1,7 +1,0 @@
-# parent-import-def-violation.yaml
-# Parent has REQUEST ["math", "console.log"] (superset of library's ["math"]).
-# But the library's DEF body uses console.log which is NOT in the library's own REQUEST.
-# → SEC_BLOCK when scanning the DEF body against the library's ["math"] REQUEST.
-- ["REQUEST", ["math", "console.log"]]
-- ["IMPORT", ["tests/programs/lib-def-violates-own-request.yaml"]]
-- ["CALL", ["badFunction", null]]

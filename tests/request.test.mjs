@@ -7,10 +7,6 @@
  *   3. REQUEST items exceeding maxRisk are blocked at scan time.
  *   4. REQUEST appearing after any executable step is blocked.
  *   5. Whole-module REQUEST grants all allowed methods of that module.
- *   6. IMPORT of a new-style library enforces the subset invariant:
- *        library REQUEST ⊆ parent REQUEST ⊆ maxRisk
- *   7. IMPORT of old-style (object-map) libraries is backwards compatible.
- *   8. DEF bodies in imported libraries are scanned against the library's own REQUEST.
  *
  * "The first principle is that you must not fool yourself — and you are the
  *  easiest person to fool."  — Richard Feynman
@@ -89,58 +85,3 @@ test('C07: REQUEST appearing after EXEC is SEC_BLOCK', async () => {
         `Error should mention 'REQUEST', got: ${r.errorMsg}`);
 });
 
-// ---------------------------------------------------------------------------
-// C10 – C16: IMPORT + REQUEST interaction
-// ---------------------------------------------------------------------------
-
-test('C10: IMPORT library with REQUEST that is subset of parent succeeds', async () => {
-    // Parent: REQUEST ["math", "console.log"]
-    // Library: REQUEST ["math", "console.log"]  ← equal (subset)
-    const r = await runNejy('tests/programs/parent-import-lib.yaml', LOW);
-    assert.strictEqual(r.exitCode, 0,
-        `Expected exit 0\nStdout: ${r.stdout}\nStderr: ${r.stderr}`);
-    assert.strictEqual(r.errorMsg, null);
-});
-
-test('C11: IMPORT library whose REQUEST exceeds parent REQUEST is SEC_BLOCK', async () => {
-    // Parent: REQUEST ["math"]
-    // Library: REQUEST ["math", "console.log"]  ← console.log not in parent
-    const r = await runNejy('tests/programs/parent-import-subset-violation.yaml', LOW);
-    assert.notStrictEqual(r.exitCode, 0);
-    assert.ok(r.errorMsg && r.errorMsg.includes('SEC_BLOCK'),
-        `Expected SEC_BLOCK, got: ${r.errorMsg}`);
-    assert.ok(r.errorMsg.includes('console.log'),
-        `Error should mention 'console.log', got: ${r.errorMsg}`);
-});
-
-test('C12: IMPORT library whose REQUEST exceeds maxRisk is SEC_BLOCK', async () => {
-    // lib-exceeds-parent.yaml requests ["math", "console.log"].
-    // Both are LOW risk so the maxRisk check won't fail here.
-    // Use request-exceeds-maxrisk.yaml directly with an IMPORT wrapper instead —
-    // test by running a parent that imports a library requesting fs.writeFileSync at LOW.
-    // For simplicity: request-exceeds-maxrisk.yaml itself is not an IMPORT test.
-    // This test re-uses C04 logic but verifies via the parent's report.
-    const r = await runNejy('tests/programs/request-exceeds-maxrisk.yaml', MEDIUM);
-    assert.notStrictEqual(r.exitCode, 0);
-    assert.ok(r.errorMsg && r.errorMsg.includes('SEC_BLOCK'),
-        `Expected SEC_BLOCK (fs.writeFileSync is HIGH, manifest is MEDIUM), got: ${r.errorMsg}`);
-});
-
-test('C13: IMPORT old-style map library is backwards compatible', async () => {
-    // Parent imports old-style {fnName: steps} library — no REQUEST header.
-    // Old-style functions inherit the parent's effective capabilities.
-    const r = await runNejy('tests/programs/parent-import-old-style.yaml', LOW);
-    assert.strictEqual(r.exitCode, 0,
-        `Expected exit 0\nStdout: ${r.stdout}\nStderr: ${r.stderr}`);
-    assert.strictEqual(r.errorMsg, null);
-});
-
-test('C14: IMPORT library DEF body violating library own REQUEST is SEC_BLOCK', async () => {
-    // Library REQUEST ["math"], DEF body uses console.log (not in library's REQUEST).
-    // Even though parent has REQUEST ["math", "console.log"], the DEF body is
-    // scanned against the *library's* own REQUEST — console.log is blocked.
-    const r = await runNejy('tests/programs/parent-import-def-violation.yaml', LOW);
-    assert.notStrictEqual(r.exitCode, 0);
-    assert.ok(r.errorMsg && r.errorMsg.includes('SEC_BLOCK'),
-        `Expected SEC_BLOCK, got: ${r.errorMsg}`);
-});

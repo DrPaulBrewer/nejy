@@ -26,7 +26,7 @@ const testCases = [
   { code: "examples/os/health_pipe.yaml", policy: "MEDIUM", ok: true },
   { code: "examples/os/health_pipe.yaml", policy: "HIGH", ok: true },
 
-  // examples/simple/failing_program.json (HIGH risk - uses child_process and IMPORT)
+  // examples/simple/failing_program.json (HIGH risk - uses child_process)
   { code: "examples/simple/failing_program.json", policy: "LOW", ok: false },
   { code: "examples/simple/failing_program.json", policy: "MEDIUM", ok: false },
   { code: "examples/simple/failing_program.json", policy: "HIGH", ok: true },
