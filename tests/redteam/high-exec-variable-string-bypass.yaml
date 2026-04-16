@@ -1,0 +1,2 @@
+- [SET, ["malicious_target", "child_process.execSync"]]
+- [EXEC, ["$malicious_target", ["echo 'Exploit Successful'"]]]
