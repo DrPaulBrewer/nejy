@@ -1,0 +1,12 @@
+[
+  ["SET", ["user_name", "Furball"]],
+  ["F", [
+    "Greet",
+    ["name"],
+    [
+      ["console.log", ["Hello,", "$name", "! Welcome to the F-function !"]]
+    ]
+  ]],
+  ["$Greet", ["$user_name"]],
+  ["console.log", ["Execution status: Operational"]]
+]
