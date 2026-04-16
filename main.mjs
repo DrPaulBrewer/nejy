@@ -7,6 +7,10 @@ import { Command } from 'commander';
 import { SecurityScanner } from './lib/interp/scanner.mjs';
 import { run } from './lib/interp/commands.mjs';
 
+const pkgPath = new URL('./package.json', import.meta.url);
+const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+const NEJY_VERSION = pkg.version;
+
 // Default registry files loaded when manifest doesn’t specify its own.
 // 90-process.yaml is intentionally excluded from all default manifests.
 const DEFAULT_REGISTRY = [
@@ -50,7 +54,7 @@ function loadSetup(policyName, filename = "unknown") {
 
     // No minRisk check.
 
-    console.error(`nejy v0.51.0 | effectiveMaxRisk: ${maxRisk} | program: ${filename.split('/').pop()} | manifest: ${policyPath.split('/').pop()}`);
+    console.error(`nejy v${NEJY_VERSION} | effectiveMaxRisk: ${maxRisk} | program: ${filename.split('/').pop()} | manifest: ${policyPath.split('/').pop()}`);
 
     const registryEntries = loadRegistry(DEFAULT_REGISTRY);
     const scanner = new SecurityScanner(policy, registryEntries);
@@ -69,7 +73,7 @@ const program = new Command();
 program
     .name('nejy')
     .description('Nejy Runtime: Sandboxed JSON/YAML Interpreter')
-    .version('0.51.0');
+    .version(NEJY_VERSION);
 
 program.command('scan')
     .description('Statically analyze a program without executing it')
