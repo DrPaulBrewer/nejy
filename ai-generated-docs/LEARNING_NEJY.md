@@ -47,8 +47,9 @@ The Nilakantha Turbo Pi script uses math.config for 64-digit precision and math.
 # 3. Pre-compile the Nilakantha expression for maximum loop speed# This allows the interpreter to reuse the logic without re-parsing the string
 - ["TO", ["turboMath", ["math.compile", ["n = $ITEM + 1; d = (n*2) * (n*2+1) * (n*2+2); $sum = $sum + ((-1)^$ITEM * (4 / d))"]]]]
 # 4. Define the Exit Hook# ON_QUOTA is automatically called if the script hits a resource limit or finishes
-- ["DEF", [
+- ["F", [
     "ON_QUOTA",
+    ["USAGE", "&VARS"],
     [
       ["EXEC", ["console.log", ["🏁 Turbo Pi Result:"]]],
       ["EXEC", ["console.log", ["$sum"]]],

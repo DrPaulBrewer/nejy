@@ -8,7 +8,7 @@ Nejy scripts are built from a fixed set of 12 commands. Every command is an arra
 * SET & TO: Manage variables. Use SET for direct values and TO for capturing function outputs.
 * EXEC & NEW: The workhorses for calling functions and instantiating classes (e.g., new Date()).
 * PIPE: Chaining operations where the result of one step flows into the next.
-* DEF & CALL: Defining and executing reusable functions.
+* F: Defining and executing reusable functions.
 * IF & FOR_EACH: Standard control flow for branching and looping.
 * REQUEST: The script's permission manifest, declaring exactly which external paths it will touch.
 
@@ -55,8 +55,9 @@ This script demonstrates high-precision math using math.config (64-digit precisi
 # 3. Pre-compile the Nilakantha expression for speed
 - ["TO", ["turboMath", ["math.compile", ["n = $ITEM + 1; d = (n*2) * (n*2+1) * (n*2+2); $sum = $sum + ((-1)^$ITEM * (4 / d))"]]]]
 # 4. Define an exit handler to report results if resources run out
-- ["DEF", [
+- ["F", [
     "ON_QUOTA",
+    ["USAGE", "&VARS"],
     [
       ["EXEC", ["console.log", ["🏁 Turbo Pi Result:"]]],
       ["EXEC", ["console.log", ["$sum"]]],

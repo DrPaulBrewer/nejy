@@ -11,7 +11,7 @@ Nejy scripts are built from a fixed set of commands. Every command is an array f
 * **LITERAL:** Assigns a raw JSON/YAML object, array, or string directly without the interpreter attempting to evaluate variables inside it. Useful for safely injecting deeply-nested objects (like database queries).
 * **EXEC & NEW:** The workhorses for calling functions (e.g., `console.log`) and instantiating classes (e.g., `new Date()`).
 * **PIPE:** Allows chaining operations where the result of one step flows directly into the next.
-* **DEF & CALL:** Defining and executing reusable functions.
+* **F:** Defining and executing reusable functions.
 * **IF & FOR_EACH:** Standard control flow for branching and looping.
 * **REQUEST:** The script's permission manifest, declaring exactly which external paths it will touch.
 
@@ -187,9 +187,10 @@ Nejy shines in its integration with `mathjs`. You can pre-compile complex expres
     ]
   ]
 - [
-    "DEF",
+    "F",
     [
       "ON_QUOTA",
+    ["USAGE", "&VARS"],
       [
         [
           "EXEC",

@@ -10,12 +10,13 @@
 # 3. Pre-compile the Nilakantha expression
 - ["TO", ["turboMath", ["math.compile", ["n = $ITEM + 1; d = (n*2) * (n*2+1) * (n*2+2); $sum = $sum + ((-1)^$ITEM * (4 / d))"]]]]
 
-- ["DEF", [
+- ["F", [
     "ON_QUOTA",
+    ["USAGE", "&VARS"],
     [
       ["EXEC", ["console.log", ["🏁 Turbo Pi Result:"]]],
-      ["EXEC", ["console.log", ["$sum"]]],
-      ["EXEC", ["console.log", ["🔢 Iterations:", "$ITEM"]]],
+      ["EXEC", ["console.log", ["$VARS.sum"]]],
+      ["EXEC", ["console.log", ["🔢 Iterations:", "$VARS.ITEM"]]],
       ["EXEC", ["console.log", ["📊 Usage:",      "$USAGE"]]]
     ]
   ]]

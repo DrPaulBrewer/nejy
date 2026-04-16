@@ -2,12 +2,13 @@
   ["EXEC", ["console.log", ["--- Extreme High-Speed Pi Calculation ---"]]],
   ["SET", ["sum", 0]],
   
-  ["DEF", [
+  ["F", [
     "ON_QUOTA", 
+    ["USAGE", "&VARS"],
     [
-      ["EXEC", ["math.multiply", ["$sum", 4]]],
+      ["EXEC", ["math.multiply", ["$VARS.sum", 4]]],
       ["EXEC", ["console.log", ["🏁 Final Pi:", "$LAST"]]],
-      ["EXEC", ["console.log", ["🔢 Iterations:", "$ITEM"]]],
+      ["EXEC", ["console.log", ["🔢 Iterations:", "$VARS.ITEM"]]],
       ["EXEC", ["console.log", ["📊 Usage:", "$USAGE"]]]]
   ]],
 

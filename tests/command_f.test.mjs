@@ -8,7 +8,6 @@ test('F Command - Defines and calls async function correctly', async () => {
     const ctx = {
         vars: {},
         mods: { math: { add: (a, b) => a + b } },
-        functions: {},
         mon: new ResourceMonitor({ maxCpuMs: Infinity, maxMemoryMb: Infinity, maxFsBytes: Infinity }),
         scanner: new SecurityScanner({ maxRisk: "LOW" })
     };
@@ -35,7 +34,6 @@ test('F Command - Scoping test, child mutations do not leak', async () => {
     const ctx = {
         vars: { global_var: "I am global" },
         mods: {},
-        functions: {},
         mon: new ResourceMonitor({ maxCpuMs: Infinity, maxMemoryMb: Infinity, maxFsBytes: Infinity }),
         scanner: new SecurityScanner({ maxRisk: "LOW" })
     };
@@ -64,7 +62,6 @@ test('F Command - Inheritance and module protection', async () => {
     const ctx = {
         vars: {},
         mods: { math: { multiply: (a, b) => a * b } },
-        functions: {},
         mon: new ResourceMonitor({ maxCpuMs: Infinity, maxMemoryMb: Infinity, maxFsBytes: Infinity }),
         scanner: new SecurityScanner({ maxRisk: "LOW" })
     };
@@ -89,7 +86,6 @@ test('F Command - Prototype Pollution checks on formal args', async () => {
     const ctx = {
         vars: {},
         mods: {},
-        functions: {},
         mon: new ResourceMonitor({ maxCpuMs: Infinity, maxMemoryMb: Infinity, maxFsBytes: Infinity }),
         scanner: new SecurityScanner({ maxRisk: "LOW" })
     };

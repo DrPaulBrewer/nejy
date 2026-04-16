@@ -13,7 +13,7 @@ Nejy scripts are built from a fixed set of commands. Every command is an array f
 * **TO:** Manages variables by executing a block of commands and capturing the output (from `$LAST`) to a variable. e.g., `["TO", ["host", ["os.hostname", []]]]`.
 * **NEW:** Instantiates a JavaScript class (e.g., `["NEW", ["Date", []]]`).
 * **PIPE:** Allows chaining operations where the result of one step flows directly into the next via `$LAST`.
-* **DEF & CALL:** Defining (`DEF`) and executing (`CALL`) reusable custom functions within your script.
+* **F:** Defining and executing (`EXEC`) reusable custom functions within your script.
 * **IF & FOR_EACH:** Standard control flow for branching and looping.
 * **SANDBOX:** For execution of nested programs within stricter risk constraints.
 * **REQUEST:** The script's permission manifest. It must be the first command if used, declaring exactly which external paths it will touch.
@@ -103,8 +103,9 @@ Nejy shines in its integration with `mathjs`. You can pre-compile complex expres
 # 3. Pre-compile the Nilakantha expression
 - ["TO", ["turboMath", ["math.compile", ["n = $ITEM + 1; d = (n*2) * (n*2+1) * (n*2+2); $sum = $sum + ((-1)^$ITEM * (4 / d))"]]]]
 
-- ["DEF", [
+- ["F", [
     "ON_QUOTA",
+    ["USAGE", "&VARS"],
     [
       ["EXEC", ["console.log", ["🏁 Turbo Pi Result:"]]],
       ["EXEC", ["console.log", ["$sum"]]],

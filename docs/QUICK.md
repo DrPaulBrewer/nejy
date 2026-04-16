@@ -73,8 +73,9 @@ Every program needs a manifest.json. If you want to use the os module for a heal
 ## 6. Cleanup Logic
 Define an ON_QUOTA block to handle crashes gracefully:
 
-- ["DEF", [
+- ["F", [
     "ON_QUOTA",
+    ["USAGE", "&VARS"],
     [["EXEC", ["console.log", ["💾 Saving state before shutdown..."]]]]
   ]]
 
