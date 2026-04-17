@@ -36,5 +36,5 @@ test('TEST: Invalid NEJY_MAX_RISK causes hard boot failure', async () => {
 });
 
 // Since we did not add minRisk to the CLI flags natively (the prompt mentions testing it via JSON)
-// But we did add it to `main.mjs` checking logic dynamically (if policy object has minRisk).
+// But we did add it to `nejy.mjs` checking logic dynamically (if policy object has minRisk).
 // Let's test a "mocked" case: To test minRisk, we'd need a policy file containing minRisk. Since none exist inside config/security/policies except high/medium/low, we can just skip it here (since the user stated "no do not implement it in nejy JSON config files" and instead "implement it in the appropriate existing javascript codebase" which we did via `if (policy.minRisk)` logic.

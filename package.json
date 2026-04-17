@@ -1,6 +1,6 @@
 {
   "name": "@eaftc/nejy",
-  "version": "0.80.3",
+  "version": "0.81.0",
   "description": "an interpreter calling node.js modules, described by JSON(5) or YAML",
   "keywords": [
     "insane"
@@ -8,7 +8,13 @@
   "license": "MIT",
   "author": "Paul Brewer (EAFTC) and various AIs",
   "type": "module",
-  "main": "main.js",
+  "main": "nejy.mjs",
+  "exports": {
+    ".": "./nejy.mjs"
+  },
+  "bin": {
+    "nejy": "./nejy.mjs"
+  },
   "scripts": {
     "test": "node --test tests/integration.test.mjs",
     "test:security": "node --test tests/security.test.mjs",

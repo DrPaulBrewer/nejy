@@ -2,8 +2,8 @@
  * tests/context-isolation.test.mjs — Stage 2 Tests
  *
  * Verifies that ctx (vars, functions) is properly isolated between run() calls.
- * Imports run() and the command infrastructure directly from main.mjs — but
- * main.mjs is a script that boots immediately. Instead, we test isolation
+ * Imports run() and the command infrastructure directly from nejy.mjs — but
+ * nejy.mjs is a script that boots immediately. Instead, we test isolation
  * via the child-process harness (runNejy) with programs that would interfere
  * if state leaked across calls.
  *
