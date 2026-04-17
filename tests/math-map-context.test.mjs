@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert';
 import { runNejy } from './helpers/run.mjs';
 const LOW = 'config/security/manifests/low-risk.json';
-import mathFunction from '../lib/mathFunction.mjs';
+import { run } from '../lib/interp/commands.mjs';
 
-test('mathFunction uses Map instead of Object', async () => {
+test('MATH command uses Map instead of Object and handles destructuring', async () => {
     const OriginalMap = Map;
     let mapCalled = false;
     global.Map = class SpyMap extends OriginalMap {
@@ -13,12 +13,33 @@ test('mathFunction uses Map instead of Object', async () => {
             mapCalled = true;
         }
     };
+
+    const ctx = { vars: {}, mods: {}, mon: { checkResources: () => {} } };
+
     try {
-        const fn = mathFunction(['x', 'y'], 'x + y');
-        assert.strictEqual(fn(2, 3), 5);
-        assert.ok(mapCalled, 'mathFunction must construct a Map to pass to math.evaluate');
+        await run([
+            ["MATH", ["myMathFn", ["x", "y", { objVal: "z" }], "x + y + z"]]
+        ], ctx);
+
+        assert.strictEqual(typeof ctx.vars.$myMathFn, 'function');
+        const res = ctx.vars.$myMathFn(2, 3, { objVal: 5 });
+        assert.strictEqual(res, 10);
+        assert.ok(mapCalled, 'MATH must construct a Map to pass to math.evaluate');
     } finally {
         global.Map = OriginalMap;
+    }
+});
+
+test('MATH command rejects pass-by-reference (&)', async () => {
+    const ctx = { vars: {}, mods: {}, mon: { checkResources: () => {} } };
+
+    try {
+        await run([
+            ["MATH", ["myMathFn", ["&x", "y"], "x + y"]]
+        ], ctx);
+        assert.fail('Should have thrown an error for & prefix');
+    } catch (e) {
+        assert.match(e.message, /Command parsing error: MATH does not support pass-by-reference/);
     }
 });
 
