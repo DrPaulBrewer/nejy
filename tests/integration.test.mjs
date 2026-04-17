@@ -113,6 +113,10 @@ for (const { code, policy, ok, expectReturn } of testCases) {
       assert.strictEqual(exitCode, 0, `Expected success but got exit code ${exitCode}.\nError in YAML: ${errorMsg}\nStderr: ${stderr}`);
       assert.strictEqual(errorMsg, null, `Expected null error in YAML, but got: ${errorMsg}`);
       assert.ok(usage && typeof usage === 'object', `Expected usage object in YAML, but got: ${JSON.stringify(usage)}`);
+
+      if (expectReturn !== undefined) {
+        assert.deepStrictEqual(returnVal, expectReturn, `Expected return value to be ${JSON.stringify(expectReturn)}, but got ${JSON.stringify(returnVal)}`);
+      }
     } else if (ok === false) {
       assert.notStrictEqual(exitCode, 0, `Expected failure but got exit code 0.\nStdout: ${stdout}`);
       assert.notStrictEqual(errorMsg, null, `Expected an error message in YAML, but got null.`);
