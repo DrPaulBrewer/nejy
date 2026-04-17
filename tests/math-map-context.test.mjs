@@ -43,6 +43,19 @@ test('MATH and F commands append themselves to ctx.history', async () => {
     assert.deepStrictEqual(ctx.history[1], ["F", ["myFFn", ["a"], [["SET", ["RESULT", "a"]]]]]);
 });
 
+test('SANDBOX isolates ctx.history from parent context', async () => {
+    const ctx = { vars: {}, mods: {}, history: [], mon: { checkResources: () => {} } };
+
+    await run([
+        ["SANDBOX", [{}, [
+            ["MATH", ["sandboxedMath", ["x", "y"], "x + y"]],
+            ["F", ["sandboxedF", ["a"], [["SET", ["RESULT", "a"]]]]]
+        ]]]
+    ], ctx);
+
+    assert.strictEqual(ctx.history.length, 0, "Parent history should remain empty when SANDBOX executes MATH/F");
+});
+
 test('MATH command rejects pass-by-reference (&)', async () => {
     const ctx = { vars: {}, mods: {}, mon: { checkResources: () => {} } };
 
