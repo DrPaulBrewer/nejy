@@ -1,6 +1,6 @@
 {
   "name": "@eaftc/nejy",
-  "version": "0.80.1",
+  "version": "0.80.2",
   "description": "an interpreter calling node.js modules, described by JSON(5) or YAML",
   "keywords": [
     "insane"
