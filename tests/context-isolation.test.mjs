@@ -51,7 +51,7 @@ test('ISO-02: $ERROR from a failing run does not persist into the next run', asy
   assert.strictEqual(r2.errorMsg, null, '$ERROR from prior run must not bleed into new run');
 });
 
-test('ISO-03: DEF\'d functions from one run are not visible in a second run', async () => {
+test('ISO-03: F functions from one run are not visible in a second run', async () => {
   // Both programs run in separate child processes; functions can't leak between them
   const r1 = await runNejy('examples/simple/passing_program.json', LOW);
   assert.strictEqual(r1.exitCode, 0);

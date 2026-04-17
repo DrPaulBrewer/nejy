@@ -29,9 +29,8 @@ The following variables are managed by the runtime and have special meaning with
 | :--- | :--- |
 | **`$LAST`** | Stores the return value of the most recent `EXEC`, `NEW`, or `RETURN` instruction. |
 | **`$ITEM`** | Stores the current element (or index) during a `FOR_EACH` loop iteration. |
-| **`$INPUT`** | Stores the data passed into a function block via the `CALL` instruction. |
 | **`$ERROR`** | Stores the error message string when an exception is caught within a `TRY` block. |
-| **`$USAGE`** | A telemetry object containing final CPU, Memory, and I/O metrics (injected during `ON_QUOTA`). |
+| **`$USAGE`** | A telemetry object containing final CPU, Memory, and I/O metrics (injected into `$ON_QUOTA` arguments). |
 | **`$VARS`** | A special identifier used as an argument in `EXEC` to provide a **Live Proxy Scope** to third-party engines. |
 
 ---
@@ -45,10 +44,9 @@ The following variables are managed by the runtime and have special meaning with
 | **PIPE** | `[init, ...steps]`| Final Result | Fluent chaining. Result of step $n$ is passed as the first argument to step $n+1$. |
 | **NEW** | `[target, args]` | Instance | Instantiates a whitelisted constructor (e.g., `Date`, `Map`) via `Reflect.construct`. |
 | **SET** | `[name, value]` | Value | Assigns `value` to `$name`. Recursively resolves variables within objects/arrays. |
+| **F**   | `[name, args, steps]` | Function | Defines an isolated, reusable function stored as an executable variable. |
 | **FOR_EACH** | `[limit, [steps]]`| Null | Iterates over an integer or array. Current value stored in `$ITEM`. |
 | **IF** | `[cond, [T], [F]]` | Branch Result | Conditional branching. `cond` can be a literal, variable, or instruction array. |
-| **DEF** | `[name, [steps]]`| Null | Registers a reusable sub-program (function) in the internal registry. |
-| **CALL** | `[name, input]` | Sub-Result | Executes a `DEF` block. Maps `input` to `$INPUT` and restores context on completion. |
 | **RETURN** | `[value]` | Value | Terminates current function and returns `value` to the caller via a `RETURN_SIGNAL`. |
 | **TRY** | `[[T], [C]]` | Null | Exception handling. Error messages are stored in `$ERROR`. |
 | **SAVE_STATE** | `[path]` | Null | Serializes all non-functional variables in the pool to a YAML file. |
