@@ -1,0 +1,7 @@
+- [REQUEST, ["Promise.resolve", "Promise.all"]]
+- [PROMISE, ["Promise.resolve", ["Hello"]]]
+- [SET, ["p1", "$LAST"]]
+- [PROMISE, ["Promise.resolve", ["World"]]]
+- [SET, ["p2", "$LAST"]]
+- [EXEC, ["Promise.all", [["$p1", "$p2"]]]]
+- [SET, ["RETURN", "$LAST"]]

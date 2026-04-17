@@ -50,6 +50,20 @@ entries:
     risk: MEDIUM
     # MEDIUM risk due to synchronous thread-locking ReDoS (unmitigated CPU DoS) vulnerabilities.
 
+    # --- Promise: base INSANE, whitelist specific resolution methods ---
+
+  - key: Promise
+    src: global
+    risk: INSANE
+    freezePrototypes: false
+    overrides:
+      Promise.all: LOW
+      Promise.allSettled: LOW
+      Promise.any: LOW
+      Promise.race: LOW
+      Promise.resolve: LOW
+      Promise.reject: LOW
+
     # --- Object: base INSANE, carve out safe methods as LOW or HIGH ---
 
   - key: Object
