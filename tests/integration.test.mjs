@@ -74,10 +74,13 @@ const testCases = [
   // tests/programs/use-inline-literal.yaml (LOW risk)
   { code: "tests/programs/use-inline-literal.yaml", policy: "LOW", ok: true },
   { code: "tests/programs/use-inline-literal.yaml", policy: "MEDIUM", ok: true },
-  { code: "tests/programs/use-inline-literal.yaml", policy: "HIGH", ok: true }
+  { code: "tests/programs/use-inline-literal.yaml", policy: "HIGH", ok: true },
+
+  // Promise resolution tests
+  { code: "tests/programs/use-promise-all.yaml", policy: "LOW", ok: true, expectReturn: ["Hello", "World"] },
 ];
 
-testCases.forEach(({ code, policy, ok }) => {
+for (const { code, policy, ok, expectReturn } of testCases) {
   test(`nejy run ${code} --policy ${policy} (expected ok: ${ok})`, { timeout: 30000 }, async () => {
     let stdout, stderr, killed = false, exitCode = 0;
     try {
@@ -120,4 +123,4 @@ testCases.forEach(({ code, policy, ok }) => {
       assert.ok(usage && typeof usage === 'object', `Expected usage object in YAML, but got: ${JSON.stringify(usage)}`);
     }
   });
-});
+}
