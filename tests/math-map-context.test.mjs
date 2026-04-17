@@ -30,6 +30,19 @@ test('MATH command uses Map instead of Object and handles destructuring', async 
     }
 });
 
+test('MATH and F commands append themselves to ctx.history', async () => {
+    const ctx = { vars: {}, mods: {}, history: [], mon: { checkResources: () => {} } };
+
+    await run([
+        ["MATH", ["myMathFn", ["x", "y"], "x + y"]],
+        ["F", ["myFFn", ["a"], [["SET", ["RESULT", "a"]]]]]
+    ], ctx);
+
+    assert.strictEqual(ctx.history.length, 2);
+    assert.deepStrictEqual(ctx.history[0], ["MATH", ["myMathFn", ["x", "y"], "x + y"]]);
+    assert.deepStrictEqual(ctx.history[1], ["F", ["myFFn", ["a"], [["SET", ["RESULT", "a"]]]]]);
+});
+
 test('MATH command rejects pass-by-reference (&)', async () => {
     const ctx = { vars: {}, mods: {}, mon: { checkResources: () => {} } };
 

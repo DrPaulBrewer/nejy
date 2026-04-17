@@ -113,6 +113,7 @@ export async function nejyRun(prog, policyName = "LOW", registryPaths = undefine
         vars: { "$LAST": null, "$ERROR": null, "$ITEM": null, "$USAGE": null, "$INPUT": null, "$RETURN": null },
         mon,
         scanner,
+        history: [],
     };
 
     try {
