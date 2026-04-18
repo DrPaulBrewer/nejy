@@ -1,0 +1,12 @@
+[
+  ["F", ["outer", [], [
+    ["F", ["inner", [], [
+      ["SET", ["RETURN", "hello from inner"]]
+    ]]],
+    ["CHILD", ["inner", []]],
+    ["EXEC", ["Promise.resolve", ["$LAST"]]],
+    ["SET", ["RETURN", "$LAST"]]
+  ]]],
+  ["CHILD", ["outer", []]],
+  ["EXEC", ["Promise.resolve", ["$LAST"]]]
+]
