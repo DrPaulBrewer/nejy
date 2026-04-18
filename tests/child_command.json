@@ -1,0 +1,9 @@
+[
+  ["F", ["childOp", [{"a": "val1"}], [
+    ["SET", ["RETURN", "$val1"]]
+  ]]],
+  ["CHILD", ["childOp", [{"a": 1, "b": 2}]]],
+  ["SET", ["p", "$LAST"]],
+  ["EXEC", ["Promise.all", [["$p"]]]],
+  ["SET", ["RETURN", "$LAST"]]
+]
