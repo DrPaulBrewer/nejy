@@ -512,3 +512,56 @@ const LOW    = 'config/security/manifests/low-risk.json';
 const MEDIUM = 'config/security/manifests/medium-net.json';
 const HIGH   = 'config/security/manifests/high-net.json';
 ```
+
+## Item Scoring and Analysis
+
+| Item | Aggravating Factors | Mitigating Factors | Score |
+| :--- | :--- | :--- | :--- |
+| 1 | Hardcodes config paths. | These are default internal files shipped with the package; hardcoding their relative paths is intended. | 0 |
+| 2 | None. | The codebase strongly prefers dynamic path resolution (`new URL(..., import.meta.url)`). The review misunderstands this requirement. | 0 |
+| 3 | Minor duplication of assignment. | It is a single line, ensuring usage is captured correctly. | 1 |
+| 4 | Unused variables (`__dirname`). | Negligible impact on execution or maintainability. | 1 |
+| 5 | Uses magic strings ("HARD_STOP"). | These act as well-understood standard error codes in this project. | 1 |
+| 6 | Only instruments `writeFileSync`, bypassing FS quota entirely for methods like `appendFileSync`. | None. This is a severe resource limit bypass. | 5 |
+| 7 | Large one-liner is difficult to read. | It is merely a CPU-burning test example, not production logic. | 0 |
+| 8 | Arbitrary 1000000 bound. | It is an acceptable arbitrary loop bound for a test example. | 0 |
+| 9 | Prototype checking loop repeated 3 times. | The logic is isolated and relatively simple. | 2 |
+| 10 | Hardcodes `4` as risk scale length. | The risk scale is static, and the comment explicitly explains the logic. | 1 |
+| 11 | String concatenation for execution code. | Spawning an inline child script is an intentional architectural design for the CHILD command isolation. | 0 |
+| 12 | None. | False claim. The promise explicitly calls `reject` if the YAML block is missing or invalid. | 0 |
+| 13 | None. | False claim. The interpreter is explicitly designed to capture the message into `$ERROR` rather than leaking JS stack traces. | 0 |
+| 14 | Similar destructuring and checking logic is duplicated in `F` and `MATH`. | The commands have subtle semantic differences (e.g. `MATH` rejects references), making a unified helper slightly complex. | 2 |
+| 15 | None. | Unsubstantiated. No block-scoped variables are declared in those cases, so curly braces are entirely unnecessary. | 0 |
+| 16 | Prototype stripping logic is almost identical for `Object` and `Array`. | The logic block is very small. | 2 |
+| 17 | Very large switch block. | Standard implementation pattern for AST visitors/evaluators. | 1 |
+| 18 | Repeated prototype pollution string checks. | Minor duplication. | 1 |
+| 19 | None. | False claim. The logic reassigns the object in the local `args` array using spread syntax; it does NOT mutate the original object. | 0 |
+| 20 | Recompiling `URLPattern` on every fetch request causes severe per-request overhead. | None. | 4 |
+| 21 | O(N*M) string lowercase operations inside the loop on the hot path. | None. | 4 |
+| 22 | Boilerplate setup per test block. | Explicit DAMP (Descriptive and Meaningful Phrases) setup is often preferred in tests to prevent cross-contamination. | 1 |
+| 23 | Same boilerplate as 22. | Same as 22. | 1 |
+| 24 | Hardcoded path strings. | Literal strings are acceptable and explicit in tests. | 0 |
+| 25 | Conversational, leftover comments. | Does not impact code execution. | 1 |
+| 26 | Brittle string replacement logic for policy name. | It is only used in a test helper over controlled file names. | 2 |
+| 27 | Swallows parsing errors. | The helper safely handles null fallback values later in the execution. | 1 |
+| 28 | Massive file with many loops. | Standard pattern for a data-driven integration test suite. | 0 |
+| 29 | Loops through directories to build tests. | Data-driven test generation is a standard and robust testing pattern. | 0 |
+| 30 | None. | False claim. `tests/request.test.mjs` does not contain `fs.writeFileSync` or `fs.unlinkSync` operations. | 0 |
+| 31 | Relies on `fs.unlinkSync` without a `try/finally` block, leaving artifacts if tests fail. | Only affects the test environment. | 3 |
+| 32 | File-level string constants. | Literal string paths are fully acceptable in tests. | 0 |
+
+## Top 5 Items by Score
+
+1. **Item 6 (Score: 5)** - Reliability: Incomplete Instrumentation
+2. **Item 20 (Score: 4)** - Performance: Performance Smell in `secureFetch.mjs`
+3. **Item 21 (Score: 4)** - Performance: Repeated Map/ToLower in `secureFetch.mjs`
+4. **Item 31 (Score: 3)** - Reliability: Unsafe Cleanup in `sandbox.test.mjs`
+5. **Item 9 (Score: 2)** - Duplication: Duplicate logic in `buildMods.mjs`
+
+## Resolution
+
+- **Item 6:** Update `instrumentFs` in `monitor/index.js` to also instrument other high-risk synchronous write methods like `appendFileSync` and `copyFileSync` so the filesystem quota cannot be bypassed.
+- **Item 20:** Pre-compile `URLPattern` instances in `createSecureFetch` at the factory level instead of per-request.
+- **Item 21:** Pre-lowercase `forbiddenHeaders` into a `Set` lookup within the factory level of `createSecureFetch` to eliminate O(N*M) operations on the hot path.
+- **Item 31:** Wrap the execution in `tests/sandbox/sandbox.test.mjs` inside `try...finally` blocks to guarantee `fs.unlinkSync` safely removes test artifacts even if assertions fail.
+- **Item 9:** Extract the repeated prototype freezing logic inside `buildMods.mjs` into a shared `freezeAndVerify` helper loop or similar to DRY up the code.
