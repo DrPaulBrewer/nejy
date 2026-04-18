@@ -123,3 +123,69 @@ test('F Command - Scanner validation for PP on function name', async () => {
         assert.match(e.message, /SEC_BLOCK: Illegal function name/);
     }
 });
+
+test('F Command - "all functions" pseudo-parameter', async () => {
+    const ctx = {
+        vars: {},
+        mods: {},
+        mon: new ResourceMonitor({ maxCpuMs: Infinity, maxMemoryMb: Infinity, maxFsBytes: Infinity }),
+        scanner: new SecurityScanner({ maxRisk: "LOW" }),
+        history: []
+    };
+
+    const program = [
+        ["MATH", ["add", ["a", "b"], "a + b"]],
+        ["MATH", ["sub", ["a", "b"], "a - b"]],
+        ["F", ["my_calc", ["x", "y", "All Functions"], [
+            ["EXEC", ["$add", ["$x", "$y"]]],
+            ["TO", ["temp", ["EXEC", ["$sub", ["$LAST", 1]]]]],
+            ["SET", ["RETURN", "$temp"]]
+        ]]],
+        ["EXEC", ["$my_calc", [10, 5]]]
+    ];
+
+    await run(program, ctx);
+    assert.equal(ctx.vars.$LAST, 14);
+});
+
+test('F Command - Scanner validation "all functions" not at the end', async () => {
+    const scanner = new SecurityScanner({ maxRisk: "LOW" });
+    const program = [
+        ["F", ["test", ["all Functions", "x"], []]]
+    ];
+
+    try {
+        await scanner.analyze(program);
+        assert.fail("Should have thrown SEC_BLOCK for all functions not at the end");
+    } catch (e) {
+        assert.match(e.message, /'all Functions' must be the last parameter/);
+    }
+});
+
+
+test('F Command - "all functions" captured at definition time, not execution time', async () => {
+    const ctx = {
+        vars: {},
+        mods: {},
+        mon: new ResourceMonitor({ maxCpuMs: Infinity, maxMemoryMb: Infinity, maxFsBytes: Infinity }),
+        scanner: new SecurityScanner({ maxRisk: "LOW" }),
+        history: []
+    };
+
+    const program = [
+        ["MATH", ["add", ["a", "b"], "a + b"]],
+        // F uses $add
+        ["F", ["my_calc", ["x", "y", "All Functions"], [
+            ["EXEC", ["$add", ["$x", "$y"]]],
+            ["SET", ["RETURN", "$LAST"]]
+        ]]],
+        // Now redefine add to something malicious or different.
+        // It shouldn't affect $my_calc because it was captured at definition time.
+        ["MATH", ["add", ["a", "b"], "a * b * 100"]],
+        ["EXEC", ["$my_calc", [10, 5]]]
+    ];
+
+    await run(program, ctx);
+    // Should be 10 + 5 = 15, NOT 10 * 5 * 100 = 5000
+    assert.equal(ctx.vars.$LAST, 15);
+});
