@@ -114,6 +114,7 @@ export async function nejyRun(prog, policyName = "LOW", registryPaths = undefine
         mon,
         scanner,
         history: [],
+        child_log: [],
     };
 
     try {

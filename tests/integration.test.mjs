@@ -16,6 +16,17 @@ const e_timeout = "e-timeout";
  * Failure is defined as (exit code !== 0).
  */
 const testCases = [
+  // CHILD command test
+  { code: "tests/child_command.json", policy: "LOW", ok: true, expectReturn: [ 1 ] },
+  { code: "tests/child_command_error.yaml", policy: "LOW", ok: false },
+  { code: "tests/child_nested.json", policy: "LOW", ok: true, expectReturn: "hello from inner" },
+  { code: "tests/child_parallel.json", policy: "LOW", ok: true, expectReturn: [
+    { status: 'fulfilled', value: 'done' },
+    { status: 'fulfilled', value: 'done' },
+    { status: 'fulfilled', value: 'done' },
+    { status: 'fulfilled', value: 'done' }
+  ] },
+
   // examples/os/health_report.yaml
   { code: "examples/os/health_report.yaml", policy: "LOW", ok: false },
   { code: "examples/os/health_report.yaml", policy: "MEDIUM", ok: true },

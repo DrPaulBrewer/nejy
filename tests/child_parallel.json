@@ -1,0 +1,19 @@
+[
+  ["F", ["cpuTask", [], [
+    ["MATH", ["calc", ["n"], "1"]],
+    ["FOR_EACH", ["LITERAL", [1,2,3,4,5,6,7,8,9,10]], [
+      ["MATH", ["calc", [], "1"]]
+    ]],
+    ["SET", ["RETURN", "done"]]
+  ]]],
+  ["CHILD", ["cpuTask", []]],
+  ["SET", ["p1", "$LAST"]],
+  ["CHILD", ["cpuTask", []]],
+  ["SET", ["p2", "$LAST"]],
+  ["CHILD", ["cpuTask", []]],
+  ["SET", ["p3", "$LAST"]],
+  ["CHILD", ["cpuTask", []]],
+  ["SET", ["p4", "$LAST"]],
+  ["EXEC", ["Promise.allSettled", [["$p1", "$p2", "$p3", "$p4"]]]],
+  ["SET", ["RETURN", "$LAST"]]
+]
