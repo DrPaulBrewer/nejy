@@ -22,7 +22,6 @@ const NEJY_VERSION = pkg.version;
 const DEFAULT_REGISTRY = [
     'config/security/registry/00-builtins.yaml',
     'config/security/registry/10-math.yaml',
-    'config/security/registry/15-mathFunction.yaml',
     'config/security/registry/20-console.yaml',
     'config/security/registry/30-yaml-module.yaml',
     'config/security/registry/40-os.yaml',
@@ -114,6 +113,7 @@ export async function nejyRun(prog, policyName = "LOW", registryPaths = undefine
         vars: { "$LAST": null, "$ERROR": null, "$ITEM": null, "$USAGE": null, "$INPUT": null, "$RETURN": null },
         mon,
         scanner,
+        history: [],
     };
 
     try {

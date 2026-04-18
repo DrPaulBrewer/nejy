@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert';
 import { runNejy } from './helpers/run.mjs';
 const LOW = 'config/security/manifests/low-risk.json';
-import mathFunction from '../lib/mathFunction.mjs';
+import { run } from '../lib/interp/commands.mjs';
 
-test('mathFunction uses Map instead of Object', async () => {
+test('MATH command uses Map instead of Object and handles destructuring', async () => {
     const OriginalMap = Map;
     let mapCalled = false;
     global.Map = class SpyMap extends OriginalMap {
@@ -13,12 +13,59 @@ test('mathFunction uses Map instead of Object', async () => {
             mapCalled = true;
         }
     };
+
+    const ctx = { vars: {}, mods: {}, mon: { checkResources: () => {} } };
+
     try {
-        const fn = mathFunction(['x', 'y'], 'x + y');
-        assert.strictEqual(fn(2, 3), 5);
-        assert.ok(mapCalled, 'mathFunction must construct a Map to pass to math.evaluate');
+        await run([
+            ["MATH", ["myMathFn", ["x", "y", { objVal: "z" }], "x + y + z"]]
+        ], ctx);
+
+        assert.strictEqual(typeof ctx.vars.$myMathFn, 'function');
+        const res = ctx.vars.$myMathFn(2, 3, { objVal: 5 });
+        assert.strictEqual(res, 10);
+        assert.ok(mapCalled, 'MATH must construct a Map to pass to math.evaluate');
     } finally {
         global.Map = OriginalMap;
+    }
+});
+
+test('MATH and F commands append themselves to ctx.history', async () => {
+    const ctx = { vars: {}, mods: {}, history: [], mon: { checkResources: () => {} } };
+
+    await run([
+        ["MATH", ["myMathFn", ["x", "y"], "x + y"]],
+        ["F", ["myFFn", ["a"], [["SET", ["RESULT", "a"]]]]]
+    ], ctx);
+
+    assert.strictEqual(ctx.history.length, 2);
+    assert.deepStrictEqual(ctx.history[0], ["MATH", ["myMathFn", ["x", "y"], "x + y"]]);
+    assert.deepStrictEqual(ctx.history[1], ["F", ["myFFn", ["a"], [["SET", ["RESULT", "a"]]]]]);
+});
+
+test('SANDBOX isolates ctx.history from parent context', async () => {
+    const ctx = { vars: {}, mods: {}, history: [], mon: { checkResources: () => {} } };
+
+    await run([
+        ["SANDBOX", [{}, [
+            ["MATH", ["sandboxedMath", ["x", "y"], "x + y"]],
+            ["F", ["sandboxedF", ["a"], [["SET", ["RESULT", "a"]]]]]
+        ]]]
+    ], ctx);
+
+    assert.strictEqual(ctx.history.length, 0, "Parent history should remain empty when SANDBOX executes MATH/F");
+});
+
+test('MATH command rejects pass-by-reference (&)', async () => {
+    const ctx = { vars: {}, mods: {}, mon: { checkResources: () => {} } };
+
+    try {
+        await run([
+            ["MATH", ["myMathFn", ["&x", "y"], "x + y"]]
+        ], ctx);
+        assert.fail('Should have thrown an error for & prefix');
+    } catch (e) {
+        assert.match(e.message, /Command parsing error: MATH does not support pass-by-reference/);
     }
 });
 

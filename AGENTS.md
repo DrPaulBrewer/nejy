@@ -39,5 +39,5 @@ When writing `nejy` scripts (e.g. for testing or examples), adhere to the follow
 - **Command Choice**:
   - Prefer using the `TO` command for mapping or assigning results directly, rather than running `EXEC` followed by referencing `$LAST`.
   - Prefer using the `PIPE` command when executing method chaining.
-- **Functions**: Prefer using the configured `mathFunction` capability to create JavaScript functions dynamically from mathematical expressions, rather than passing raw string callbacks or building functions manually.
+- **Functions**: Prefer using the `MATH` command to create JavaScript functions dynamically from mathematical expressions, rather than passing raw string callbacks or building functions manually.
 - **Iteration**: Prefer native Array operations (`map`, `reduce`, `forEach`), which are available in the builtins registry, over the `nejy` `FOR_EACH` command.
