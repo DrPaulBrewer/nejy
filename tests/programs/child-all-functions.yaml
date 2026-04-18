@@ -1,0 +1,20 @@
+- ["MATH", ["leibniz_term", ["i", "sum"], "sum + ((-1)^i / (2 * i + 1))"]]
+- ["MATH", ["mult_by_4", ["val"], "val * 4"]]
+- ["F", [
+    "calc_pi",
+    ["iterations", "all functions"],
+    [
+        ["SET", ["sum", 0]],
+        ["FOR_EACH", [
+            "$iterations",
+            [
+               ["EXEC", ["$leibniz_term", ["$ITEM", "$sum"]]],
+               ["SET", ["sum", "$LAST"]]
+            ]
+        ]],
+        ["EXEC", ["$mult_by_4", ["$sum"]]],
+        ["SET", ["RETURN", "$LAST"]]
+    ]
+  ]]
+- ["CHILD", ["calc_pi", [100]]]
+- ["PROMISE", ["$LAST.then", [ ["F", ["cb", ["res"], [ ["SET", ["RETURN", "$res"]] ]] ] ]]]
