@@ -19,11 +19,13 @@ test('SANDBOX: "copy" isolates variables and returns $RETURN as $LAST', async ()
         ["SET", ["RETURN", ["$foo", "$LAST"]]]
     ];
     fs.writeFileSync(codePath, JSON.stringify(program));
-    const result = await runNejy(codePath, LOW);
-    fs.unlinkSync(codePath);
-
-    assert.strictEqual(result.exitCode, 0, result.errorMsg || result.stderr);
-    assert.deepStrictEqual(result.returnVal, ["bar", "modified"]);
+    try {
+        const result = await runNejy(codePath, LOW);
+        assert.strictEqual(result.exitCode, 0, result.errorMsg || result.stderr);
+        assert.deepStrictEqual(result.returnVal, ["bar", "modified"]);
+    } finally {
+        fs.unlinkSync(codePath);
+    }
 });
 
 test('SANDBOX: empty config {} provides no capabilities or variables', async () => {
@@ -36,11 +38,13 @@ test('SANDBOX: empty config {} provides no capabilities or variables', async () 
         ]]]
     ];
     fs.writeFileSync(codePath, JSON.stringify(program));
-    const result = await runNejy(codePath, LOW);
-    fs.unlinkSync(codePath);
-
-    assert.strictEqual(result.exitCode, 0, result.errorMsg || result.stderr);
-    assert.strictEqual(result.returnVal, null); // because $foo wasn't passed in
+    try {
+        const result = await runNejy(codePath, LOW);
+        assert.strictEqual(result.exitCode, 0, result.errorMsg || result.stderr);
+        assert.strictEqual(result.returnVal, null); // because $foo wasn't passed in
+    } finally {
+        fs.unlinkSync(codePath);
+    }
 });
 
 test('SANDBOX: escalates capabilities -> SEC_BLOCK', async () => {
@@ -51,11 +55,13 @@ test('SANDBOX: escalates capabilities -> SEC_BLOCK', async () => {
         ]]]
     ];
     fs.writeFileSync(codePath, JSON.stringify(program));
-    const result = await runNejy(codePath, LOW); // LOW manifest doesn't have fs.writeFileSync
-    fs.unlinkSync(codePath);
-
-    assert.strictEqual(result.exitCode, 1);
-    assert.match(result.errorMsg, /SEC_BLOCK/);
+    try {
+        const result = await runNejy(codePath, LOW); // LOW manifest doesn't have fs.writeFileSync
+        assert.strictEqual(result.exitCode, 1);
+        assert.match(result.errorMsg, /SEC_BLOCK/);
+    } finally {
+        fs.unlinkSync(codePath);
+    }
 });
 
 test('SANDBOX: valid subset capabilities succeeds', async () => {
@@ -68,11 +74,13 @@ test('SANDBOX: valid subset capabilities succeeds', async () => {
         ]]]
     ];
     fs.writeFileSync(codePath, JSON.stringify(program));
-    const result = await runNejy(codePath, LOW);
-    fs.unlinkSync(codePath);
-
-    assert.strictEqual(result.exitCode, 0, result.errorMsg || result.stderr);
-    assert.strictEqual(result.returnVal, 2);
+    try {
+        const result = await runNejy(codePath, LOW);
+        assert.strictEqual(result.exitCode, 0, result.errorMsg || result.stderr);
+        assert.strictEqual(result.returnVal, 2);
+    } finally {
+        fs.unlinkSync(codePath);
+    }
 });
 
 test('SANDBOX: context array deeply copies specific vars', async () => {
@@ -90,12 +98,14 @@ test('SANDBOX: context array deeply copies specific vars', async () => {
         ["SET", ["RETURN", ["$obj", "$LAST"]]]
     ];
     fs.writeFileSync(codePath, JSON.stringify(program));
-    const result = await runNejy(codePath, LOW);
-    fs.unlinkSync(codePath);
-
-    assert.strictEqual(result.exitCode, 0, result.errorMsg || result.stderr);
-    // [ parent_obj, [ sandbox_obj, sandbox_ignored ] ]
-    assert.deepStrictEqual(result.returnVal, [{a: 1}, [{a: 2}, null]]);
+    try {
+        const result = await runNejy(codePath, LOW);
+        assert.strictEqual(result.exitCode, 0, result.errorMsg || result.stderr);
+        // [ parent_obj, [ sandbox_obj, sandbox_ignored ] ]
+        assert.deepStrictEqual(result.returnVal, [{a: 1}, [{a: 2}, null]]);
+    } finally {
+        fs.unlinkSync(codePath);
+    }
 });
 
 test('SANDBOX: context object sets new initial vars', async () => {
@@ -106,10 +116,12 @@ test('SANDBOX: context object sets new initial vars', async () => {
         ]]]
     ];
     fs.writeFileSync(codePath, JSON.stringify(program));
-    const result = await runNejy(codePath, LOW);
-    fs.unlinkSync(codePath);
-
-    assert.strictEqual(result.exitCode, 0, result.errorMsg || result.stderr);
-    assert.strictEqual(result.returnVal, "bar");
+    try {
+        const result = await runNejy(codePath, LOW);
+        assert.strictEqual(result.exitCode, 0, result.errorMsg || result.stderr);
+        assert.strictEqual(result.returnVal, "bar");
+    } finally {
+        fs.unlinkSync(codePath);
+    }
 });
 
