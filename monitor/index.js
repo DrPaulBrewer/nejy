@@ -37,15 +37,117 @@ export default class ResourceMonitor {
   }
 
   instrumentFs(fsModule) {
-    const originalWrite = fsModule.writeFileSync;
-    fsModule.writeFileSync = (path, data, ...args) => {
-      const bytes = Buffer.byteLength(data);
+    const checkQuota = (bytes) => {
       if (this.usage.fsBytes + bytes > this.quotas.maxFsBytes) {
         throw new Error("FS_QUOTA_EXCEEDED");
       }
       this.usage.fsBytes += bytes;
-      return originalWrite.apply(fsModule, [path, data, ...args]);
     };
+
+    // --- Synchronous methods ---
+    const originalWriteFileSync = fsModule.writeFileSync;
+    if (originalWriteFileSync) {
+      fsModule.writeFileSync = (path, data, ...args) => {
+        checkQuota(Buffer.byteLength(data));
+        return originalWriteFileSync.apply(fsModule, [path, data, ...args]);
+      };
+    }
+
+    const originalAppendFileSync = fsModule.appendFileSync;
+    if (originalAppendFileSync) {
+      fsModule.appendFileSync = (path, data, ...args) => {
+        checkQuota(Buffer.byteLength(data));
+        return originalAppendFileSync.apply(fsModule, [path, data, ...args]);
+      };
+    }
+
+    const originalCopyFileSync = fsModule.copyFileSync;
+    if (originalCopyFileSync) {
+      fsModule.copyFileSync = (src, dest, ...args) => {
+        const stats = fsModule.statSync(src);
+        checkQuota(stats.size);
+        return originalCopyFileSync.apply(fsModule, [src, dest, ...args]);
+      };
+    }
+
+    // --- Callback-based methods ---
+    const originalWriteFile = fsModule.writeFile;
+    if (originalWriteFile) {
+      fsModule.writeFile = (path, data, ...args) => {
+        try {
+          checkQuota(Buffer.byteLength(data));
+        } catch (e) {
+          const cb = args[args.length - 1];
+          if (typeof cb === 'function') return cb(e);
+          throw e;
+        }
+        return originalWriteFile.apply(fsModule, [path, data, ...args]);
+      };
+    }
+
+    const originalAppendFile = fsModule.appendFile;
+    if (originalAppendFile) {
+      fsModule.appendFile = (path, data, ...args) => {
+        try {
+          checkQuota(Buffer.byteLength(data));
+        } catch (e) {
+          const cb = args[args.length - 1];
+          if (typeof cb === 'function') return cb(e);
+          throw e;
+        }
+        return originalAppendFile.apply(fsModule, [path, data, ...args]);
+      };
+    }
+
+    const originalCopyFile = fsModule.copyFile;
+    if (originalCopyFile) {
+      fsModule.copyFile = (src, dest, ...args) => {
+        const cb = args[args.length - 1];
+        const hasCallback = typeof cb === 'function';
+
+        fsModule.stat(src, (err, stats) => {
+          if (err) {
+            if (hasCallback) return cb(err);
+            throw err;
+          }
+          try {
+            checkQuota(stats.size);
+          } catch (e) {
+            if (hasCallback) return cb(e);
+            throw e;
+          }
+          return originalCopyFile.apply(fsModule, [src, dest, ...args]);
+        });
+      };
+    }
+
+    // --- Promise-based methods ---
+    if (fsModule.promises) {
+      const originalPromisesWriteFile = fsModule.promises.writeFile;
+      if (originalPromisesWriteFile) {
+        fsModule.promises.writeFile = async (path, data, ...args) => {
+          checkQuota(Buffer.byteLength(data));
+          return originalPromisesWriteFile.apply(fsModule.promises, [path, data, ...args]);
+        };
+      }
+
+      const originalPromisesAppendFile = fsModule.promises.appendFile;
+      if (originalPromisesAppendFile) {
+        fsModule.promises.appendFile = async (path, data, ...args) => {
+          checkQuota(Buffer.byteLength(data));
+          return originalPromisesAppendFile.apply(fsModule.promises, [path, data, ...args]);
+        };
+      }
+
+      const originalPromisesCopyFile = fsModule.promises.copyFile;
+      if (originalPromisesCopyFile) {
+        fsModule.promises.copyFile = async (src, dest, ...args) => {
+          const stats = await fsModule.promises.stat(src);
+          checkQuota(stats.size);
+          return originalPromisesCopyFile.apply(fsModule.promises, [src, dest, ...args]);
+        };
+      }
+    }
   }
 
 }

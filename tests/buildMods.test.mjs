@@ -10,7 +10,7 @@ import { test } from 'node:test';
 import assert from 'node:assert';
 import { buildMods, loadRegistry } from '../lib/buildMods.mjs';
 
-const REG = 'config/security/registry';
+const REG = 'config/security/registry/modules-available';
 const ALL_FILES = [
   `${REG}/00-builtins.yaml`,
   `${REG}/10-math.yaml`,

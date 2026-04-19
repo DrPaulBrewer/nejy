@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import ResourceMonitor from './monitor/index.js';
 import { buildMods, loadRegistry } from './lib/buildMods.mjs';
+import { discoverRegistryFiles } from './lib/registryDiscovery.mjs';
 import { Command } from 'commander';
 import { SecurityScanner } from './lib/interp/scanner.mjs';
 import { run } from './lib/interp/commands.mjs';
@@ -19,16 +20,8 @@ const NEJY_VERSION = pkg.version;
 
 // Default registry files loaded when manifest doesn’t specify its own.
 // 90-process.yaml is intentionally excluded from all default manifests.
-const DEFAULT_REGISTRY = [
-    'config/security/registry/00-builtins.yaml',
-    'config/security/registry/10-math.yaml',
-    'config/security/registry/20-console.yaml',
-    'config/security/registry/30-yaml-module.yaml',
-    'config/security/registry/40-os.yaml',
-    'config/security/registry/50-fs.yaml',
-    'config/security/registry/60-net.yaml',
-    'config/security/registry/80-json.yaml',
-];
+const DEFAULT_REGISTRY_DIR = fileURLToPath(new URL('./config/security/registry/modules-enabled', import.meta.url));
+const DEFAULT_REGISTRY = discoverRegistryFiles(DEFAULT_REGISTRY_DIR);
 
 export function getDefaultRegistry() {
     return [...DEFAULT_REGISTRY];
@@ -72,7 +65,7 @@ export function loadSetup(policyName, filename = "unknown", registryPaths = unde
         } catch {
              // For default registry paths, make sure they resolve relative to this file
              if (DEFAULT_REGISTRY.includes(p)) {
-                 return new URL(`./${p}`, import.meta.url).pathname;
+                 return p;
              }
              return p;
         }
