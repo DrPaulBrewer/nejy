@@ -9,6 +9,7 @@ import { buildMods, loadRegistry } from './lib/buildMods.mjs';
 import { Command } from 'commander';
 import { SecurityScanner } from './lib/interp/scanner.mjs';
 import { run } from './lib/interp/commands.mjs';
+import { getDefaultRegistry } from './lib/registryDiscovery.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -17,22 +18,7 @@ const pkgPath = new URL('./package.json', import.meta.url);
 const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
 const NEJY_VERSION = pkg.version;
 
-// Default registry files loaded when manifest doesn’t specify its own.
-// 90-process.yaml is intentionally excluded from all default manifests.
-const DEFAULT_REGISTRY = [
-    'config/security/registry/00-builtins.yaml',
-    'config/security/registry/10-math.yaml',
-    'config/security/registry/20-console.yaml',
-    'config/security/registry/30-yaml-module.yaml',
-    'config/security/registry/40-os.yaml',
-    'config/security/registry/50-fs.yaml',
-    'config/security/registry/60-net.yaml',
-    'config/security/registry/80-json.yaml',
-];
-
-export function getDefaultRegistry() {
-    return [...DEFAULT_REGISTRY];
-}
+export { getDefaultRegistry };
 
 export function loadSetup(policyName, filename = "unknown", registryPaths = undefined) {
     let policyPath;
@@ -63,15 +49,15 @@ export function loadSetup(policyName, filename = "unknown", registryPaths = unde
 
     // No minRisk check.
 
-    const registryFiles = registryPaths || DEFAULT_REGISTRY;
+    const registryFiles = registryPaths || getDefaultRegistry();
     // Resolve registry paths relative to the current module if they are not absolute and not URLs
     const resolvedRegistryFiles = registryFiles.map(p => {
         try {
             new URL(p); // Test if it's already a URL
             return p;
         } catch {
-             // For default registry paths, make sure they resolve relative to this file
-             if (DEFAULT_REGISTRY.includes(p)) {
+             // For paths starting with 'config/security/registry', make sure they resolve relative to this file
+             if (p.startsWith('config/security/registry')) {
                  return new URL(`./${p}`, import.meta.url).pathname;
              }
              return p;
