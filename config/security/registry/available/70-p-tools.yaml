@@ -3,3 +3,18 @@ entries:
     src: import
     module: p-map
     risk: LOW
+
+  - key: pQueue
+    src: import
+    module: p-queue
+    risk: LOW
+
+  - key: pLimit
+    src: import
+    module: p-limit
+    risk: LOW
+
+  - key: pSeries
+    src: import
+    module: p-series
+    risk: LOW
