@@ -1,0 +1,17 @@
+# This script demonstrates p-lazy
+# It creates a lazy promise that only executes when awaited.
+
+# Using pLazy.from is easier, it takes a function that returns a Promise or value.
+- ["MATH", ["lazyTask", [], "100"]]
+
+# Instantiate a lazy promise
+- ["EXEC", ["pLazy.from", ["$lazyTask"]]]
+- ["SET", ["myLazyPromise", "$LAST"]]
+
+- ["console.log", ["Created lazy promise..."]]
+
+# Await the lazy promise directly. EXEC automatically awaits it if it's passed to an async identity function or Promise.all.
+- ["EXEC", ["Promise.all", [["$myLazyPromise"]]]]
+- ["SET", ["result", "$LAST"]]
+
+- ["console.log", ["Lazy result array:", "$result"]]
