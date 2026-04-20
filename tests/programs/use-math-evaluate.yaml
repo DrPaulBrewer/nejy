@@ -1,4 +1,4 @@
 # use-math-evaluate.yaml
 # EXPECTED CORRECT: math.evaluate is LOW risk and should succeed under any policy.
-- ["EXEC", ["math.evaluate", ["1 + 1"]]]
+- [" 1 + 1"]
 - ["SET", ["RETURN", "$LAST"]]

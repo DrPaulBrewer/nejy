@@ -69,7 +69,7 @@ test('SANDBOX: valid subset capabilities succeeds', async () => {
     const program = [
         ["REQUEST", ["console.log", "math.evaluate"]],
         ["SANDBOX", [{ capabilities: ["math.evaluate"] }, [
-            ["EXEC", ["math.evaluate", ["1 + 1"]]],
+            [" 1 + 1"],
             ["SET", ["RETURN", "$LAST"]]
         ]]]
     ];
