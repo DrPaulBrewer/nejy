@@ -8,7 +8,7 @@
 - ["TO", ["sum", ["math.bignumber", [3]]]]
 
 # 3. Pre-compile the Nilakantha expression
-- ["TO", ["turboMath", ["math.compile", ["n = $ITEM + 1; d = (n*2) * (n*2+1) * (n*2+2); $sum = $sum + ((-1)^$ITEM * (4 / d))"]]]]
+- ["TO", ["turboMath", ["math.compile", ["$n = $ITEM + 1; $d = ($n*2) * ($n*2+1) * ($n*2+2); $sum = $sum + ((-1)^$ITEM * (4 / $d))"]]]]
 
 - ["F", [
     "ON_QUOTA",
