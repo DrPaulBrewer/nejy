@@ -18,3 +18,18 @@ entries:
     src: import
     module: p-series
     risk: LOW
+
+  - key: pRetry
+    src: import
+    module: p-retry
+    risk: LOW
+
+  - key: pTimeout
+    src: import
+    module: p-timeout
+    risk: LOW
+
+  - key: pLazy
+    src: import
+    module: p-lazy
+    risk: LOW
