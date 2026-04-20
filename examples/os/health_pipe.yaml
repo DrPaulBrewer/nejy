@@ -9,7 +9,7 @@
 
 - ["TO", ["host", ["os.hostname", []]]]
 
-- ["TO", ["pct", ["math.evaluate", ["100 - (os.freemem() / os.totalmem() * 100)", "$VARS"]]]]
+- ["TO", ["pct", [" 100 - (os.freemem() / os.totalmem() * 100)"]]]
 
 - ["SET", ["entries", [
     ["hostname",          "$host"],

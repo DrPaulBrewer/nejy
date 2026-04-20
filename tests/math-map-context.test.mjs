@@ -74,7 +74,7 @@ test('math.evaluate with $VARS returns correctly using Map proxy', async () => {
     const prog = `
 - ["SET", ["A", 10]]
 - ["SET", ["B", 20]]
-- ["EXEC", ["math.evaluate", ["$A + $B", "$VARS"]]]
+- [" $A + $B"]
 - ["SET", ["RETURN", "$LAST"]]
     `;
     const fs = await import('fs');

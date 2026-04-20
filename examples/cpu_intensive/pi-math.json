@@ -15,7 +15,7 @@
   ["FOR_EACH", [
     1000000000, 
     [
-      ["EXEC", ["math.evaluate", ["$sum = $sum + ((-1)^$ITEM / (2 * $ITEM + 1))", "$VARS"]]]
+      [" $sum = $sum + ((-1)^$ITEM / (2 * $ITEM + 1))"]
     ]
   ]]
 ]

@@ -1,5 +1,5 @@
 # request-math-and-console.yaml
 # REQUEST both math and console.log, then use both — should succeed.
 - ["REQUEST", ["math", "console.log"]]
-- ["EXEC", ["math.evaluate", ["2 + 2"]]]
+- [" 2 + 2"]
 - ["EXEC", ["console.log", ["Result:", "$LAST"]]]
