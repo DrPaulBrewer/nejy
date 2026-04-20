@@ -1,0 +1,5 @@
+entries:
+  - key: pMap
+    src: import
+    module: p-map
+    risk: LOW
