@@ -1,0 +1,12 @@
+# This script demonstrates p-map
+# It maps over an array with concurrency control.
+
+- ["SET", ["inputs", [1, 2, 3, 4, 5]]]
+
+# We can map directly with a Math function to verify pMap works.
+- ["MATH", ["square", ["val"], "val * val"]]
+
+- ["EXEC", ["pMap", ["$inputs", "$square", {"concurrency": 2}]]]
+- ["SET", ["results", "$LAST"]]
+
+- ["console.log", ["pMap Results:", "$results"]]

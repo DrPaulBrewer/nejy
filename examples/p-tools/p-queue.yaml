@@ -1,0 +1,27 @@
+# This script demonstrates p-queue
+# It adds tasks to a queue with concurrency control.
+
+# Create the queue instance with concurrency: 2
+- ["NEW", ["pQueue", [{"concurrency": 2}]]]
+- ["SET", ["queue", "$LAST"]]
+
+- ["SET", ["results", []]]
+
+# Add tasks using math expressions since F with literal promises requires high risk
+- ["MATH", ["task1", [], "10 * 10"]]
+- ["MATH", ["task2", [], "20 * 20"]]
+- ["MATH", ["task3", [], "30 * 30"]]
+
+- ["EXEC", ["$queue.add", ["$task1"]]]
+- ["EXEC", ["$results.push", ["$LAST"]]]
+
+- ["EXEC", ["$queue.add", ["$task2"]]]
+- ["EXEC", ["$results.push", ["$LAST"]]]
+
+- ["EXEC", ["$queue.add", ["$task3"]]]
+- ["EXEC", ["$results.push", ["$LAST"]]]
+
+# Wait for queue to empty
+- ["EXEC", ["$queue.onIdle", []]]
+
+- ["console.log", ["pQueue Results:", "$results"]]

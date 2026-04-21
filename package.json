@@ -32,6 +32,13 @@
     "json5": "^2.2.3",
     "jsonpath-plus": "^10.4.0",
     "mathjs": "^15.2.0",
+    "p-lazy": "^5.0.0",
+    "p-limit": "^7.3.0",
+    "p-map": "^7.0.4",
+    "p-queue": "^9.1.2",
+    "p-retry": "^8.0.0",
+    "p-series": "^3.0.0",
+    "p-timeout": "^7.0.1",
     "urlpattern-polyfill": "^10.1.0",
     "yaml": "^2.8.3",
     "zod": "^4.3.6"

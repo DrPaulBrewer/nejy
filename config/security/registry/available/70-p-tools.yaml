@@ -1,0 +1,35 @@
+entries:
+  - key: pMap
+    src: import
+    module: p-map
+    risk: LOW
+
+  - key: pQueue
+    src: import
+    module: p-queue
+    risk: LOW
+
+  - key: pLimit
+    src: import
+    module: p-limit
+    risk: LOW
+
+  - key: pSeries
+    src: import
+    module: p-series
+    risk: LOW
+
+  - key: pRetry
+    src: import
+    module: p-retry
+    risk: LOW
+
+  - key: pTimeout
+    src: import
+    module: p-timeout
+    risk: LOW
+
+  - key: pLazy
+    src: import
+    module: p-lazy
+    risk: LOW
