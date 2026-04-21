@@ -1,4 +1,16 @@
 entries:
+  # --- Custom utility functions ---
+
+  - key: I
+    src: import
+    module: ./I.mjs
+    risk: LOW
+
+  - key: A
+    src: import
+    module: ./A.mjs
+    risk: LOW
+
   # --- Simple safe built-ins (wildcard mode, all LOW risk) ---
 
   - key: Math
