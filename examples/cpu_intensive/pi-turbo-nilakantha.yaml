@@ -1,14 +1,8 @@
 # pi-turbo-nilakantha.yaml
 - ["EXEC", ["console.log", ["--- 🚀 Nilakantha Turbo Pi (64-bit Precision) ---"]]]
-
-# 1. Configure Math.js for BigNumber and 64-digit precision
 - ["EXEC", ["math.config", [{ number: "BigNumber", precision: 64 }]]]
-
-# 2. Initialize sum as BigNumber 3
-- ["TO", ["sum", ["math.bignumber", [3]]]]
-
-# 3. Pre-compile the Nilakantha expression
-- ["TO", ["turboMath", ["math.compile", ["n = $ITEM + 1; d = (n*2) * (n*2+1) * (n*2+2); $sum = $sum + ((-1)^$ITEM * (4 / d))"]]]]
+- ["EXEC", ["math.bignumber", [3], "sum"]]
+- ["EXEC", ["math.compile", ["n = $ITEM + 1; d = (n*2) * (n*2+1) * (n*2+2); $sum = $sum + ((-1)^$ITEM * (4 / d))"], "turboMath"]]
 
 - ["F", [
     "ON_QUOTA",

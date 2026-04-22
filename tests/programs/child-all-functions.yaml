@@ -8,13 +8,11 @@
         ["FOR_EACH", [
             "$iterations",
             [
-               ["EXEC", ["$leibniz_term", ["$ITEM", "$sum"]]],
-               ["SET", ["sum", "$LAST"]]
+               ["EXEC", ["$leibniz_term", ["$ITEM", "$sum"], "sum"]]
             ]
         ]],
-        ["EXEC", ["$mult_by_4", ["$sum"]]],
-        ["SET", ["RETURN", "$LAST"]]
+        ["EXEC", ["$mult_by_4", ["$sum"], "RETURN"]]
     ]
   ]]
-- ["CHILD", ["calc_pi", [100]]]
-- ["PROMISE", ["$LAST.then", [ ["F", ["cb", ["res"], [ ["SET", ["RETURN", "$res"]] ]] ] ]]]
+- ["CHILD", ["calc_pi", [100], "piPromise"]]
+- ["AWAIT", ["piPromise", "RETURN"]]

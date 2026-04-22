@@ -1,13 +1,6 @@
 # This script demonstrates p-series
-# It runs promise-returning functions in series.
-
-# Define async math tasks
 - ["MATH", ["task1", [], "10 * 10"]]
 - ["MATH", ["task2", [], "20 * 20"]]
 - ["MATH", ["task3", [], "30 * 30"]]
-
-# Run tasks in series
-- ["EXEC", ["pSeries", [["$task1", "$task2", "$task3"]]]]
-- ["SET", ["results", "$LAST"]]
-
+- ["EXEC", ["pSeries", [["$task1", "$task2", "$task3"]], "results"]]
 - ["console.log", ["pSeries Results:", "$results"]]

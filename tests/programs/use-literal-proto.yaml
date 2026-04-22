@@ -1,2 +1,2 @@
-- ["LITERAL", { "__proto__": { "polluted": true } }]
-- ["SET", ["RETURN", "$LAST"]]
+# use-literal-proto.yaml
+- ["LITERAL", { "__proto__": { "polluted": true } }, "RETURN"]

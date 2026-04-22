@@ -1,11 +1,4 @@
 # This script demonstrates p-retry
-# It retries a failing function
-
-# This math expression throws an error roughly 50% of the time
 - ["MATH", ["flakyTask", [], "random() < 0.5 ? error('Simulated Failure') : 'Success!'"]]
-
-# We retry up to 10 times
-- ["EXEC", ["pRetry", ["$flakyTask", {"retries": 10}]]]
-- ["SET", ["result", "$LAST"]]
-
+- ["EXEC", ["pRetry", ["$flakyTask", {"retries": 10}], "result"]]
 - ["console.log", ["pRetry Result after passing:", "$result"]]

@@ -1,13 +1,13 @@
 # 🏥 System Health Report
-- ["TO", ["host",    ["os.hostname", []]]]
-- ["TO", ["dateObj", ["NEW", ["Date", []]]]]
-- ["TO", ["utc",     ["$dateObj.toISOString", []]]]
+- ["EXEC", ["os.hostname", [], "host"]]
+- ["NEW",  ["Date", [], "dateObj"]]
+- ["EXEC", ["$dateObj.toISOString", [], "utc"]]
 
 # Using Math.max on an array
 - ["SET", ["nums", [10, 50, 20]]]
-- ["TO", ["maxVal", ["Math.max.apply", [null, "$nums"]]]]
+- ["EXEC", ["Math.max.apply", [null, "$nums"], "maxVal"]]
 
 - ["SET", ["entries", [["host", "$host"], ["time", "$utc"], ["max", "$maxVal"]]]]
-- ["EXEC", ["Object.fromEntries", ["$entries"]]]
-- ["EXEC", ["YAML.stringify",     ["$LAST"]]]
-- ["EXEC", ["console.log",        ["$LAST"]]]
+- ["EXEC", ["Object.fromEntries", ["$entries"], "report"]]
+- ["EXEC", ["YAML.stringify",     ["$report"],  "reportYaml"]]
+- ["EXEC", ["console.log",        ["$reportYaml"]]]

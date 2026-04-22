@@ -1,91 +1,52 @@
-- [EXEC, ["fs.readFileSync", ["examples/crypto/symmetric-ciphertext-input.txt", "utf8"]]]
-- [SET, ["ciphertext", "$LAST"]]
-
-# Nejy now handles primitives natively thanks to the Reflect.get(Object(fn)) fix.
-# We no longer need 'NEW String' wrappers.
+- [EXEC, ["fs.readFileSync", ["examples/crypto/symmetric-ciphertext-input.txt", "utf8"], "ciphertext"]]
 - [SET, ["cipherObj", "$ciphertext"]]
 
 # Robust Armor Stripping
-- [EXEC, ["$cipherObj.split", ["\n\n"]]]
-- [SET, ["parts", "$LAST"]]
-- [EXEC, ["$parts.at", [1]]]
-- [SET, ["bodyPlusCRC", "$LAST"]]
-
-- [EXEC, ["$bodyPlusCRC.split", ["\n="]]]
-- [SET, ["b64_arr", "$LAST"]]
-- [EXEC, ["$b64_arr.at", [0]]]
-- [SET, ["b64", "$LAST"]]
+- [EXEC, ["$cipherObj.split", ["\n\n"], "parts"]]
+- [EXEC, ["$parts.at", [1], "bodyPlusCRC"]]
+- [EXEC, ["$bodyPlusCRC.split", ["\n="], "b64_arr"]]
+- [EXEC, ["$b64_arr.at", [0], "b64"]]
 
 # Decode Base64 to Buffer
-- [EXEC, ["Buffer.from", ["$b64", "base64"]]]
-- [SET, ["packet", "$LAST"]]
+- [EXEC, ["Buffer.from", ["$b64", "base64"], "packet"]]
 
 # --- RFC 4880 S2K Key Derivation ---
-- [EXEC, ["$packet.subarray", [6, 14]]]
-- [SET, ["salt", "$LAST"]]
-
-- [EXEC, ["Buffer.from", ["abcd"]]]
-- [SET, ["password", "$LAST"]]
-
-- [EXEC, ["Buffer.concat", [[ "$salt", "$password" ]]]]
-- [SET, ["material", "$LAST"]]
+- [EXEC, ["$packet.subarray", [6, 14], "salt"]]
+- [EXEC, ["Buffer.from", ["abcd"], "password"]]
+- [EXEC, ["Buffer.concat", [["$salt", "$password"]], "material"]]
 
 # OpenPGP S2K iteration byte 0xff -> 65,011,712 bytes iterated
-- [EXEC, ["Buffer.alloc", [65011712]]]
-- [SET, ["itBuf", "$LAST"]]
+- [EXEC, ["Buffer.alloc", [65011712], "itBuf"]]
 - [EXEC, ["$itBuf.fill", ["$material"]]]
 
-- [EXEC, ["Crypto.createHash", ["sha512"]]]
-- [SET, ["hash", "$LAST"]]
+- [EXEC, ["Crypto.createHash", ["sha512"], "hash"]]
 - [EXEC, ["$hash.update", ["$itBuf"]]]
-- [EXEC, ["$hash.digest", []]]
-- [EXEC, ["$LAST.subarray", [0, 32]]]
-- [SET, ["key", "$LAST"]]
+- [EXEC, ["$hash.digest", [], "hashDigest"]]
+- [EXEC, ["$hashDigest.subarray", [0, 32], "key"]]
 
 # --- RFC 4880 OpenPGP CFB Decryption ---
-# The SEIPD (Tag 18) ciphertext starts at index 18 of the packet.
-- [EXEC, ["$packet.subarray", [18]]]
-- [SET, ["C", "$LAST"]]
-
-# SEIPD uses standard CFB mode (no resync) with a zero IV.
-- [EXEC, ["Buffer.alloc", [16]]]
-- [SET, ["zeroIV", "$LAST"]]
-
-- [EXEC, ["Crypto.createDecipheriv", ["aes-256-cfb", "$key", "$zeroIV"]]]
-- [SET, ["dec", "$LAST"]]
-- [EXEC, ["$dec.update", ["$C"]]]
-- [SET, ["updatePart", "$LAST"]]
-- [EXEC, ["$dec.final", []]]
-- [SET, ["finalPart", "$LAST"]]
-
-- [EXEC, ["Buffer.concat", [[ "$updatePart", "$finalPart" ]]]]
-- [SET, ["plain", "$LAST"]]
+- [EXEC, ["$packet.subarray", [18], "C"]]
+- [EXEC, ["Buffer.alloc", [16], "zeroIV"]]
+- [EXEC, ["Crypto.createDecipheriv", ["aes-256-cfb", "$key", "$zeroIV"], "dec"]]
+- [EXEC, ["$dec.update", ["$C"], "updatePart"]]
+- [EXEC, ["$dec.final", [], "finalPart"]]
+- [EXEC, ["Buffer.concat", [["$updatePart", "$finalPart"]], "plain"]]
 
 # Compressed Data Packet (Tag 8) starts at offset 18 of plain buffer.
-# The compressed algorithm is at offset 19 (1 = ZIP).
-# The compressed data stream begins at offset 20.
-- [EXEC, ["$plain.subarray", [20]]]
-- [SET, ["compressed", "$LAST"]]
+- [EXEC, ["$plain.subarray", [20], "compressed"]]
 
 # Decompress using zlib.inflateRawSync
-- [EXEC, ["Zlib.inflateRawSync", ["$compressed"]]]
-- [SET, ["uncompressed", "$LAST"]]
+- [EXEC, ["Zlib.inflateRawSync", ["$compressed"], "uncompressed"]]
 
-# Literal Data Packet (Tag 11) data begins at offset 8 of uncompressed buffer.
-- [EXEC, ["$uncompressed.subarray", [8]]]
-- [SET, ["plaintextBuffer", "$LAST"]]
+# Literal Data Packet (Tag 11) data begins at offset 8
+- [EXEC, ["$uncompressed.subarray", [8], "plaintextBuffer"]]
 
 # Extract readable text
-- [EXEC, ["$plaintextBuffer.toString", ["utf8"]]]
-- [SET, ["rawText", "$LAST"]]
+- [EXEC, ["$plaintextBuffer.toString", ["utf8"], "rawText"]]
+- [NEW, ["RegExp", ["[\\s\\x20-\\x7E]{5,}", "g"], "rx"]]
+- [EXEC, ["$rawText.match", ["$rx"], "matches"]]
 
-- [NEW, ["RegExp", ["[\\s\\x20-\\x7E]{5,}", "g"]]]
-- [SET, ["rx", "$LAST"]]
-
-- [EXEC, ["$rawText.match", ["$rx"]]]
-- [SET, ["matches", "$LAST"]]
-
-- [IF, ["$matches", 
-    [["EXEC", ["$matches.join", [""]]], ["EXEC", ["console.log", ["\n[DECRYPTED PLAINTEXT]\n", "$LAST"]]]], 
+- [IF, ["$matches",
+    [["EXEC", ["$matches.join", [""], "joined"]], ["EXEC", ["console.log", ["\n[DECRYPTED PLAINTEXT]\n", "$joined"]]]],
     [["EXEC", ["console.log", ["Failed to decrypt or find readable text. Raw buffer length:", "$plaintextBuffer.length"]]]]
   ]]

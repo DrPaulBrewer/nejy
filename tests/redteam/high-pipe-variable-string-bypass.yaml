@@ -1,5 +1,2 @@
 - [SET, ["malicious_target", "child_process.execSync"]]
-- [PIPE, [
-    ["LITERAL", "echo 'Pipe Exploit Successful'"],
-    "$malicious_target"
-  ]]
+- [EXEC, ["$malicious_target", ["echo 'Exploit Successful'"]]]

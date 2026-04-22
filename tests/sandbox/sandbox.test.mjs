@@ -7,16 +7,16 @@ const LOW    = 'config/security/manifests/low-risk.json';
 const MEDIUM = 'config/security/manifests/medium-net.json';
 const HIGH   = 'config/security/manifests/high-net.json';
 
-test('SANDBOX: "copy" isolates variables and returns $RETURN as $LAST', async () => {
+test('SANDBOX: "copy" isolates variables and stores result in dest', async () => {
     const codePath = 'tests/sandbox/test_copy.json';
     const program = [
         ["SET", ["foo", "bar"]],
         ["SANDBOX", ["copy", [
             ["SET", ["foo", "modified"]],
             ["SET", ["RETURN", "$foo"]]
-        ]]],
+        ], "childRet"]],
         // We set $RETURN at the end so it propagates out
-        ["SET", ["RETURN", ["$foo", "$LAST"]]]
+        ["SET", ["RETURN", ["$foo", "$childRet"]]]
     ];
     fs.writeFileSync(codePath, JSON.stringify(program));
     try {
@@ -33,9 +33,10 @@ test('SANDBOX: empty config {} provides no capabilities or variables', async () 
     const program = [
         ["SET", ["foo", "bar"]],
         ["SANDBOX", [{}, [
-            ["TO", ["bar", "$foo"]], // $foo should be null/undefined
+            ["SET", ["bar", "$foo"]], // $foo is undefined, so resolves to undefined
             ["SET", ["RETURN", "$bar"]]
-        ]]]
+        ], "childRet"]],
+        ["SET", ["RETURN", "$childRet"]]
     ];
     fs.writeFileSync(codePath, JSON.stringify(program));
     try {
@@ -69,9 +70,9 @@ test('SANDBOX: valid subset capabilities succeeds', async () => {
     const program = [
         ["REQUEST", ["console.log", "math.evaluate"]],
         ["SANDBOX", [{ capabilities: ["math.evaluate"] }, [
-            [" 1 + 1"],
-            ["SET", ["RETURN", "$LAST"]]
-        ]]]
+            [" 1 + 1", {}, "RETURN"]
+        ], "childRet"]],
+        ["SET", ["RETURN", "$childRet"]]
     ];
     fs.writeFileSync(codePath, JSON.stringify(program));
     try {
@@ -90,12 +91,12 @@ test('SANDBOX: context array deeply copies specific vars', async () => {
         ["SET", ["ignored", "hello"]],
         ["SANDBOX", [{ context: ["$obj"] }, [
             // should not see $ignored
-            ["TO", ["temp_ignored", "$ignored"]],
+            ["SET", ["temp_ignored", "$ignored"]],
             // modify $obj to prove isolation
             ["SET", ["obj", { a: 2 }]],
             ["SET", ["RETURN", ["$obj", "$temp_ignored"]]]
-        ]]],
-        ["SET", ["RETURN", ["$obj", "$LAST"]]]
+        ], "childRet"]],
+        ["SET", ["RETURN", ["$obj", "$childRet"]]]
     ];
     fs.writeFileSync(codePath, JSON.stringify(program));
     try {
@@ -113,7 +114,7 @@ test('SANDBOX: context object sets new initial vars', async () => {
     const program = [
         ["SANDBOX", [{ context: { "$foo": "bar" } }, [
             ["SET", ["RETURN", "$foo"]]
-        ]]]
+        ], "RETURN"]]
     ];
     fs.writeFileSync(codePath, JSON.stringify(program));
     try {
