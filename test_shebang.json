@@ -1,0 +1,4 @@
+#!/usr/bin/env -S node nejy.mjs run -p LOW
+[
+  ["EXEC", ["console.log", ["Hello from shebang json!"]]]
+]
