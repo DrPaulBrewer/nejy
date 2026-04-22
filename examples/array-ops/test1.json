@@ -1,9 +1,57 @@
 [
-  ["MATH", ["mapFunc", ["v", "i"], "1.0 / (1.0 + i)"]],
-  ["MATH", ["reduceFunc", ["acc", "v", "i"], "acc + v"]],
-  ["EXEC", ["Array", [1000000], {"chain": [
-    ["fill",   [0]],
-    ["map",    ["$mapFunc"]],
-    ["reduce", ["$reduceFunc"]]
-  ], "into": "result"}]]
+  [
+    "MATH",
+    [
+      "mapFunc",
+      [
+        "v",
+        "i"
+      ],
+      "1.0 / (1.0 + i)"
+    ]
+  ],
+  [
+    "MATH",
+    [
+      "reduceFunc",
+      [
+        "acc",
+        "v",
+        "i"
+      ],
+      "acc + v"
+    ]
+  ],
+  [
+    "EXEC",
+    [
+      "Array",
+      [
+        1000000
+      ],
+      {
+        "chain": [
+          [
+            "fill",
+            [
+              0
+            ]
+          ],
+          [
+            "map",
+            [
+              "$mapFunc"
+            ]
+          ],
+          [
+            "reduce",
+            [
+              "$reduceFunc"
+            ]
+          ]
+        ],
+        "into": "RETURN"
+      }
+    ]
+  ]
 ]
