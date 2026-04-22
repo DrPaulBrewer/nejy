@@ -96,7 +96,7 @@ export async function nejyRun(prog, policyName = "LOW", registryPaths = undefine
 
     const ctx = {
         mods,
-        vars: { "$LAST": null, "$ERROR": null, "$ITEM": null, "$USAGE": null, "$INPUT": null, "$RETURN": null },
+        vars: { "$ERROR": null, "$ITEM": null, "$USAGE": null, "$INPUT": null, "$RETURN": null },
         mon,
         scanner,
         history: [],
@@ -108,7 +108,7 @@ export async function nejyRun(prog, policyName = "LOW", registryPaths = undefine
         if (!ctx.vars["$USAGE"]) ctx.vars["$USAGE"] = ctx.mon.usage;
         return {
             errorMsg: null,
-            result: ctx.vars["$RETURN"] ?? ctx.vars["$LAST"],
+            result: ctx.vars["$RETURN"],
             usage: ctx.vars["$USAGE"]
         };
     } catch (e) {
