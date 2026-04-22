@@ -33,7 +33,7 @@ test('SANDBOX: empty config {} provides no capabilities or variables', async () 
     const program = [
         ["SET", ["foo", "bar"]],
         ["SANDBOX", [{}, [
-            [" $foo", {}, "bar"], // $foo should be undefined in sandbox
+            ["SET", ["bar", "$foo"]], // $foo is undefined, so resolves to undefined
             ["SET", ["RETURN", "$bar"]]
         ], "childRet"]],
         ["SET", ["RETURN", "$childRet"]]
@@ -91,7 +91,7 @@ test('SANDBOX: context array deeply copies specific vars', async () => {
         ["SET", ["ignored", "hello"]],
         ["SANDBOX", [{ context: ["$obj"] }, [
             // should not see $ignored
-            [" $ignored", {}, "temp_ignored"],
+            ["SET", ["temp_ignored", "$ignored"]],
             // modify $obj to prove isolation
             ["SET", ["obj", { a: 2 }]],
             ["SET", ["RETURN", ["$obj", "$temp_ignored"]]]
