@@ -74,8 +74,7 @@ test('math.evaluate with $VARS returns correctly using Map proxy', async () => {
     const prog = `
 - ["SET", ["A", 10]]
 - ["SET", ["B", 20]]
-- [" $A + $B"]
-- ["SET", ["RETURN", "$LAST"]]
+- [" $A + $B", {}, "RETURN"]
     `;
     const fs = await import('fs');
     fs.writeFileSync('tests/programs/math-vars-test.yaml', prog);

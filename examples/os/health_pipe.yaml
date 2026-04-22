@@ -1,8 +1,9 @@
 # health_pipe.yaml
 - ["EXEC", ["console.log", ["--- 🏥 Gathering System Data ---"]]]
 
-# Capture UTC timestamp using CHAIN decorator: new Date().toISOString()
-- ["EXEC", ["Date", [], {"chain": [["toISOString", []]], "into": "utcTime"}]]
+# Capture UTC timestamp
+- ["NEW", ["Date", [], "dateObj"]]
+- ["EXEC", ["$dateObj.toISOString", [], "utcTime"]]
 
 - ["EXEC", ["os.hostname", [], "host"]]
 

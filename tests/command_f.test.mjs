@@ -17,17 +17,16 @@ test('F Command - Defines and calls async function correctly', async () => {
             "addNums",
             ["a", "b"],
             [
-                ["EXEC", ["math.add", ["$a", "$b"]]],
-                ["SET", ["RETURN", "$LAST"]]
+                ["EXEC", ["math.add", ["$a", "$b"], "RETURN"]]
             ]
         ]],
-        ["EXEC", ["$addNums", [5, 10]]]
+        ["EXEC", ["$addNums", [5, 10], "res"]]
     ];
 
     await run(program, ctx);
 
     assert.equal(typeof ctx.vars.$addNums, 'function');
-    assert.equal(ctx.vars.$LAST, 15);
+    assert.equal(ctx.vars.$res, 15);
 });
 
 test('F Command - Scoping test, child mutations do not leak', async () => {
@@ -47,12 +46,12 @@ test('F Command - Scoping test, child mutations do not leak', async () => {
                 ["SET", ["RETURN", "$global_var"]]
             ]
         ]],
-        ["EXEC", ["$mutateVars", []]]
+        ["EXEC", ["$mutateVars", [], "res"]]
     ];
 
     await run(program, ctx);
 
-    assert.equal(ctx.vars.$LAST, "I have been mutated!");
+    assert.equal(ctx.vars.$res, "I have been mutated!");
     // The parent vars should NOT be modified
     assert.equal(ctx.vars.$global_var, undefined); // Wait, "SET" in the child creates `$global_var` in childCtx.
     assert.equal(ctx.vars.global_var, "I am global");
@@ -71,15 +70,14 @@ test('F Command - Inheritance and module protection', async () => {
             "testMods",
             [],
             [
-                ["EXEC", ["math.multiply", [4, 5]]],
-                ["SET", ["RETURN", "$LAST"]]
+                ["EXEC", ["math.multiply", [4, 5], "RETURN"]]
             ]
         ]],
-        ["EXEC", ["$testMods", []]]
+        ["EXEC", ["$testMods", [], "res"]]
     ];
 
     await run(program, ctx);
-    assert.equal(ctx.vars.$LAST, 20);
+    assert.equal(ctx.vars.$res, 20);
 });
 
 test('F Command - Prototype Pollution checks on formal args', async () => {
@@ -137,15 +135,15 @@ test('F Command - "all functions" pseudo-parameter', async () => {
         ["MATH", ["add", ["a", "b"], "a + b"]],
         ["MATH", ["sub", ["a", "b"], "a - b"]],
         ["F", ["my_calc", ["x", "y", "All Functions"], [
-            ["EXEC", ["$add", ["$x", "$y"]]],
-            ["TO", ["temp", ["EXEC", ["$sub", ["$LAST", 1]]]]],
+            ["EXEC", ["$add", ["$x", "$y"], "temp"]],
+            ["EXEC", ["$sub", ["$temp", 1], "temp"]],
             ["SET", ["RETURN", "$temp"]]
         ]]],
-        ["EXEC", ["$my_calc", [10, 5]]]
+        ["EXEC", ["$my_calc", [10, 5], "res"]]
     ];
 
     await run(program, ctx);
-    assert.equal(ctx.vars.$LAST, 14);
+    assert.equal(ctx.vars.$res, 14);
 });
 
 test('F Command - Scanner validation "all functions" not at the end', async () => {
@@ -176,16 +174,15 @@ test('F Command - "all functions" captured at definition time, not execution tim
         ["MATH", ["add", ["a", "b"], "a + b"]],
         // F uses $add
         ["F", ["my_calc", ["x", "y", "All Functions"], [
-            ["EXEC", ["$add", ["$x", "$y"]]],
-            ["SET", ["RETURN", "$LAST"]]
+            ["EXEC", ["$add", ["$x", "$y"], "RETURN"]]
         ]]],
         // Now redefine add to something malicious or different.
         // It shouldn't affect $my_calc because it was captured at definition time.
         ["MATH", ["add", ["a", "b"], "a * b * 100"]],
-        ["EXEC", ["$my_calc", [10, 5]]]
+        ["EXEC", ["$my_calc", [10, 5], "res"]]
     ];
 
     await run(program, ctx);
     // Should be 10 + 5 = 15, NOT 10 * 5 * 100 = 5000
-    assert.equal(ctx.vars.$LAST, 15);
+    assert.equal(ctx.vars.$res, 15);
 });
