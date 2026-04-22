@@ -4,6 +4,7 @@ import process from 'node:process';
 import YAML from 'yaml';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { z } from 'zod';
 import ResourceMonitor from './monitor/index.js';
 import { buildMods, loadRegistry } from './lib/buildMods.mjs';
 import { Command } from 'commander';
@@ -31,11 +32,27 @@ export function loadSetup(policyName, filename = "unknown", registryPaths = unde
     if (!fs.existsSync(policyPath)) {
         throw new Error(`❌ Policy file not found: ${policyPath}`);
     }
-    const policy = JSON.parse(fs.readFileSync(policyPath, 'utf8'));
+    const rawPolicy = JSON.parse(fs.readFileSync(policyPath, 'utf8'));
+
+    const PolicySchema = z.object({
+        maxRisk: z.enum(["LOW", "MEDIUM", "HIGH", "INSANE"]).default("LOW"),
+        quotas: z.object({
+            maxCpuMs: z.number().nonnegative(),
+            maxMemoryMb: z.number().nonnegative(),
+            maxFsBytes: z.number().nonnegative(),
+        }).strict()
+    }).strict();
+
+    let policy;
+    try {
+        policy = PolicySchema.parse(rawPolicy);
+    } catch (e) {
+        throw new Error(`❌ Policy Validation Error in ${policyPath}:\n` + e.issues.map(i => `  - ${i.path.join('.')}: ${i.message}`).join('\n'));
+    }
 
     // ENV and Bounding Logic
     const riskMap = { "LOW": 0, "MEDIUM": 1, "HIGH": 2, "INSANE": 3 };
-    const maxRisk = policy.maxRisk || "LOW";
+    const maxRisk = policy.maxRisk;
 
     if (process.env.NEJY_MAX_RISK) {
         const envVal = process.env.NEJY_MAX_RISK;
