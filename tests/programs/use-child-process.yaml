@@ -1,5 +1,4 @@
 # use-child-process.yaml
 # EXPECTED CORRECT: child_process.execSync is HIGH risk.
 # Should be blocked at LOW and MEDIUM, succeed at HIGH.
-- ["EXEC", ["child_process.execSync", ["echo hello"]]]
-- ["SET", ["RETURN", "$LAST"]]
+- ["EXEC", ["child_process.execSync", ["echo hello"], "RETURN"]]

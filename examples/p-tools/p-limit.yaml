@@ -1,21 +1,9 @@
 # This script demonstrates p-limit
-# It limits concurrent execution of promises.
-
-# Create the limit function with concurrency: 2
-- ["EXEC", ["pLimit", [2]]]
-- ["SET", ["limit", "$LAST"]]
-
+- ["EXEC", ["pLimit", [2], "limit"]]
 - ["MATH", ["task1", [], "10 * 10"]]
 - ["MATH", ["task2", [], "20 * 20"]]
 - ["MATH", ["task3", [], "30 * 30"]]
-
-- ["EXEC", ["$limit", ["$task1"]]]
-- ["SET", ["res1", "$LAST"]]
-
-- ["EXEC", ["$limit", ["$task2"]]]
-- ["SET", ["res2", "$LAST"]]
-
-- ["EXEC", ["$limit", ["$task3"]]]
-- ["SET", ["res3", "$LAST"]]
-
+- ["EXEC", ["$limit", ["$task1"], "res1"]]
+- ["EXEC", ["$limit", ["$task2"], "res2"]]
+- ["EXEC", ["$limit", ["$task3"], "res3"]]
 - ["console.log", ["pLimit Results:", ["$res1", "$res2", "$res3"]]]

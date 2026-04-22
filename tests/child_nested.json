@@ -3,10 +3,9 @@
     ["F", ["inner", [], [
       ["SET", ["RETURN", "hello from inner"]]
     ]]],
-    ["CHILD", ["inner", []]],
-    ["EXEC", ["Promise.resolve", ["$LAST"]]],
-    ["SET", ["RETURN", "$LAST"]]
+    ["CHILD", ["inner", [], "innerPromise"]],
+    ["AWAIT", ["innerPromise", "RETURN"]]
   ]]],
-  ["CHILD", ["outer", []]],
-  ["EXEC", ["Promise.resolve", ["$LAST"]]]
+  ["CHILD", ["outer", [], "outerPromise"]],
+  ["AWAIT", ["outerPromise", "RETURN"]]
 ]

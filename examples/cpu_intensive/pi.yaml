@@ -2,15 +2,14 @@
 - ["EXEC", ["console.log", ["--- High-Speed Pi Calculation (YAML) ---"]]]
 - ["SET",  ["sum", 0]]
 
-# Pre-compile the math expression once
-- ["TO", ["compiledMath", ["math.compile", ["$sum = $sum + ((-1)^$ITEM / (2 * $ITEM + 1))"]]]]
+- ["EXEC", ["math.compile", ["$sum = $sum + ((-1)^$ITEM / (2 * $ITEM + 1))"], "compiledMath"]]
 
 - ["F", [
     "ON_QUOTA",
     ["USAGE", "&VARS"],
     [
-      ["EXEC", ["math.multiply", ["$VARS.sum", 4]]],
-      ["EXEC", ["console.log", ["🏁 Final Pi:",   "$LAST"]]],
+      ["EXEC", ["math.multiply", ["$VARS.sum", 4], "piVal"]],
+      ["EXEC", ["console.log", ["🏁 Final Pi:",   "$piVal"]]],
       ["EXEC", ["console.log", ["🔢 Iterations:", "$VARS.ITEM"]]],
       ["EXEC", ["console.log", ["📊 Usage:",      "$USAGE"]]]
     ]

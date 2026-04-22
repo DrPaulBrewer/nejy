@@ -1,2 +1,3 @@
+# use-inline-literal-proto.yaml
 - ["SET", ["query", ["LITERAL", {"__proto__": {}}]]]
 - ["SET", ["RETURN", "$query"]]

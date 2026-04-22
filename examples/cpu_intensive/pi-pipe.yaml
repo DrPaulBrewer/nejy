@@ -1,17 +1,15 @@
-# pi-pipe.yaml — High-Speed Pi Calculation (PIPE Edition)
-- ["EXEC", ["console.log", ["--- High-Speed Pi Calculation (PIPE Edition) ---"]]]
+# pi-pipe.yaml — High-Speed Pi Calculation (PIPE Edition, migrated to Option A)
+- ["EXEC", ["console.log", ["--- High-Speed Pi Calculation ---"]]]
 - ["SET",  ["sum", 0]]
 
-- ["TO", ["compiledMath", ["math.compile", ["$sum = $sum + ((-1)^$ITEM / (2 * $ITEM + 1))"]]]]
+- ["EXEC", ["math.compile", ["$sum = $sum + ((-1)^$ITEM / (2 * $ITEM + 1))"], "compiledMath"]]
 
 - ["F", [
     "ON_QUOTA",
     ["USAGE", "&VARS"],
     [
-      ["PIPE", [
-        ["EXEC", ["math.multiply", ["$VARS.sum", 4]]],
-        ["EXEC", ["console.log",   ["🏁 Final Pi: ", "$LAST"]]]
-      ]],
+      ["EXEC", ["math.multiply", ["$VARS.sum", 4], "piVal"]],
+      ["EXEC", ["console.log",   ["🏁 Final Pi: ", "$piVal"]]],
       ["EXEC", ["console.log", ["🔢 Iterations:", "$VARS.ITEM"]]],
       ["EXEC", ["console.log", ["📊 Usage:",      "$USAGE"]]]
     ]

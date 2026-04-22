@@ -1,5 +1,4 @@
 # use-eval.yaml
 # KNOWN GAP: eval is not in the registry and should be blocked at all risk levels.
 # Currently this program runs successfully at LOW risk (gap!).
-- ["EXEC", ["eval", ["1+1"]]]
-- ["SET", ["RETURN", "$LAST"]]
+- ["EXEC", ["eval", ["1+1"], "RETURN"]]

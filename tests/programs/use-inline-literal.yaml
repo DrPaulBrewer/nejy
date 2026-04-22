@@ -1,2 +1,3 @@
+# use-inline-literal.yaml
 - ["SET", ["query", ["LITERAL", {"$set": {"status": "active"}}]]]
 - ["SET", ["RETURN", "$query"]]

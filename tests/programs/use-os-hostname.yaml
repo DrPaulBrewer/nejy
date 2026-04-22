@@ -1,5 +1,4 @@
 # use-os-hostname.yaml
 # EXPECTED CORRECT: os.hostname is MEDIUM risk.
 # Should be blocked at LOW, succeed at MEDIUM and HIGH.
-- ["EXEC", ["os.hostname", []]]
-- ["SET", ["RETURN", "$LAST"]]
+- ["EXEC", ["os.hostname", [], "RETURN"]]

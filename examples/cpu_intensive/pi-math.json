@@ -1,19 +1,20 @@
 [
   ["EXEC", ["console.log", ["--- Extreme High-Speed Pi Calculation ---"]]],
   ["SET", ["sum", 0]],
-  
+
   ["F", [
-    "ON_QUOTA", 
+    "ON_QUOTA",
     ["USAGE", "&VARS"],
     [
-      ["EXEC", ["math.multiply", ["$VARS.sum", 4]]],
-      ["EXEC", ["console.log", ["🏁 Final Pi:", "$LAST"]]],
+      ["EXEC", ["math.multiply", ["$VARS.sum", 4], "piVal"]],
+      ["EXEC", ["console.log", ["🏁 Final Pi:", "$piVal"]]],
       ["EXEC", ["console.log", ["🔢 Iterations:", "$VARS.ITEM"]]],
-      ["EXEC", ["console.log", ["📊 Usage:", "$USAGE"]]]]
+      ["EXEC", ["console.log", ["📊 Usage:", "$USAGE"]]]
+    ]
   ]],
 
   ["FOR_EACH", [
-    1000000000, 
+    1000000000,
     [
       [" $sum = $sum + ((-1)^$ITEM / (2 * $ITEM + 1))"]
     ]

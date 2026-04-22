@@ -1,5 +1,5 @@
 [
   ["console.log", ["Attempting unauthorized shell execution..."]],
-  ["TO", ["current_user", ["child_process.execSync", ["whoami"]]]],
+  ["EXEC", ["child_process.execSync", ["whoami"], "current_user"]],
   ["console.log", ["Found user:", "$current_user"]]
 ]

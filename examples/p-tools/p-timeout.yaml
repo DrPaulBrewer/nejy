@@ -1,11 +1,4 @@
 # This script demonstrates p-timeout
-# It restricts a promise to complete within a given time limit.
-
-# Using PROMISE to return a bare promise. EXEC automatically awaits it and gives us the resolved value, not the promise.
-- ["PROMISE", ["Promise.resolve", ["Fast Success!"]]]
-- ["SET", ["fastPromise", "$LAST"]]
-
-- ["EXEC", ["pTimeout", ["$fastPromise", {"milliseconds": 100}]]]
-- ["SET", ["result", "$LAST"]]
-
+- ["EXEC", ["Promise.resolve", ["Fast Success!"], {promise: fastPromise}]]
+- ["EXEC", ["pTimeout", ["$fastPromise", {"milliseconds": 100}], "result"]]
 - ["console.log", ["pTimeout Result:", "$result"]]

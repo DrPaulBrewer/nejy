@@ -6,8 +6,8 @@
     "ON_QUOTA",
     ["USAGE", "&VARS"],
     [
-      ["EXEC", ["math.multiply", ["$VARS.sum", 4]]],
-      ["EXEC", ["console.log", ["🏁 Final Breath Pi:",    "$LAST"]]],
+      ["EXEC", ["math.multiply", ["$VARS.sum", 4], "piVal"]],
+      ["EXEC", ["console.log", ["🏁 Final Breath Pi:",    "$piVal"]]],
       ["EXEC", ["console.log", ["🔢 Iterations:", "$VARS.ITEM"]]],
       ["EXEC", ["console.log", ["📊 Final Usage Report:",  "$USAGE"]]]
     ]
@@ -16,18 +16,14 @@
   ["FOR_EACH", [
     1000000000,
     [
-      ["TO", ["divisor", [
-        ["EXEC", ["math.multiply", ["$ITEM", 2]]],
-        ["EXEC", ["math.add",      ["$LAST", 1]]]
-      ]]],
-
-      ["TO", ["term",    ["math.divide", [1, "$divisor"]]]],
-
-      ["EXEC", ["math.mod", ["$ITEM", 2]]],
+      ["EXEC", ["math.multiply", ["$ITEM", 2], "doubled"]],
+      ["EXEC", ["math.add",      ["$doubled", 1], "divisor"]],
+      ["EXEC", ["math.divide",   [1, "$divisor"], "term"]],
+      ["EXEC", ["math.mod",      ["$ITEM", 2], "parity"]],
       ["IF", [
-        ["EXEC", ["math.equal", ["$LAST", 0]]],
-        [["TO", ["sum", ["math.add",      ["$sum", "$term"]]]]],
-        [["TO", ["sum", ["math.subtract", ["$sum", "$term"]]]]]
+        "$parity",
+        [["EXEC", ["math.subtract", ["$sum", "$term"], "sum"]]],
+        [["EXEC", ["math.add",      ["$sum", "$term"], "sum"]]]
       ]]
     ]
   ]]
