@@ -55,6 +55,14 @@ entries:
     src: global
     risk: LOW
 
+  - key: AbortController
+    src: global
+    risk: LOW
+
+  - key: AbortSignal
+    src: global
+    risk: LOW
+
   # --- Regular Expressions ---
 
   - key: RegExp
