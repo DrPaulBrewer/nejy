@@ -9,6 +9,7 @@ import ResourceMonitor from './monitor/index.js';
 import { buildMods, loadRegistry } from './lib/buildMods.mjs';
 import { Command } from 'commander';
 import { SecurityScanner } from './lib/interp/scanner.mjs';
+import { PolicySchema } from './lib/schema/policy.mjs';
 import { run } from './lib/interp/commands.mjs';
 import { getDefaultRegistry } from './lib/registryDiscovery.mjs';
 
@@ -20,6 +21,9 @@ const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
 const NEJY_VERSION = pkg.version;
 
 export { getDefaultRegistry };
+
+const ajv = new Ajv({ useDefaults: true, allErrors: true });
+const validatePolicy = ajv.compile(PolicySchema);
 
 export function loadSetup(policyName, filename = "unknown", registryPaths = undefined) {
     let policyPath;
@@ -34,31 +38,6 @@ export function loadSetup(policyName, filename = "unknown", registryPaths = unde
     }
     const rawPolicy = JSON.parse(fs.readFileSync(policyPath, 'utf8'));
 
-    const ajv = new Ajv({ useDefaults: true, allErrors: true });
-
-    const PolicySchema = {
-        type: "object",
-        properties: {
-            maxRisk: {
-                enum: ["LOW", "MEDIUM", "HIGH", "INSANE"],
-                default: "LOW"
-            },
-            quotas: {
-                type: "object",
-                properties: {
-                    maxCpuMs: { type: "number", minimum: 0 },
-                    maxMemoryMb: { type: "number", minimum: 0 },
-                    maxFsBytes: { type: "number", minimum: 0 }
-                },
-                required: ["maxCpuMs", "maxMemoryMb", "maxFsBytes"],
-                additionalProperties: false
-            }
-        },
-        required: ["quotas"],
-        additionalProperties: false
-    };
-
-    const validatePolicy = ajv.compile(PolicySchema);
     const isValid = validatePolicy(rawPolicy);
 
     if (!isValid) {
