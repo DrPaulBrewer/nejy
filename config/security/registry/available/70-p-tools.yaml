@@ -33,3 +33,83 @@ entries:
     src: import
     module: p-lazy
     risk: LOW
+
+  - key: pTimes
+    src: import
+    module: p-times
+    risk: LOW
+
+  - key: pForever
+    src: import
+    module: p-forever
+    risk: LOW
+
+  - key: pWhilst
+    src: import
+    module: p-whilst
+    risk: LOW
+
+  - key: pDoWhilst
+    src: import
+    module: p-do-whilst
+    risk: LOW
+
+  - key: pFilter
+    src: import
+    module: p-filter
+    risk: LOW
+
+  - key: pLocate
+    src: import
+    module: p-locate
+    risk: LOW
+
+  - key: pSome
+    src: import
+    module: p-some
+    risk: LOW
+
+  - key: pAny
+    src: import
+    module: p-any
+    risk: LOW
+
+  - key: pReduce
+    src: import
+    module: p-reduce
+    risk: LOW
+
+  - key: delay
+    src: import
+    module: delay
+    risk: LOW
+
+  - key: pMapSeries
+    src: import
+    module: p-map-series
+    risk: LOW
+
+  - key: pEachSeries
+    src: import
+    module: p-each-series
+    risk: LOW
+
+  - key: pEvery
+    src: import
+    module: p-every
+    risk: LOW
+
+  - key: pPipe
+    src: import
+    module: p-pipe
+    risk: LOW
+
+  - key: pWaterfall
+    src: import
+    module: p-waterfall
+    risk: LOW
+
+  - key: pMutex
+    src: import
+    module: p-mutex
+    risk: LOW
