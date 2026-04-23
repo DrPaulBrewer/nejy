@@ -1,6 +1,6 @@
 {
   "name": "@eaftc/nejy",
-  "version": "0.91.1",
+  "version": "0.92.0",
   "description": "an interpreter calling node.js modules, described by JSON(5) or YAML",
   "keywords": [
     "insane"
@@ -25,6 +25,7 @@
     "test:all": "node --test tests/integration.test.mjs tests/security.test.mjs tests/buildMods.test.mjs tests/context-isolation.test.mjs tests/request.test.mjs tests/redteam.test.mjs tests/sandbox/sandbox.test.mjs"
   },
   "dependencies": {
+    "ajv": "^8.18.0",
     "commander": "^14.0.3",
     "dot-prop": "^10.1.0",
     "fast-json-patch": "^3.1.1",
@@ -40,8 +41,7 @@
     "p-series": "^3.0.0",
     "p-timeout": "^7.0.1",
     "urlpattern-polyfill": "^10.1.0",
-    "yaml": "^2.8.3",
-    "zod": "^4.3.6"
+    "yaml": "^2.8.3"
   },
   "repository": {
     "type": "git",

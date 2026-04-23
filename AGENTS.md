@@ -27,7 +27,7 @@ Welcome! If you are an AI agent working on the `nejy` project, this document pro
 
 ## 4. Leverage Existing Dependencies
 Prefer leveraging the built-in Node.js standard library or existing high-quality modules rather than writing complex custom logic where possible. You should review `package.json` to see what is already available. For example:
-- **`zod`**: Use for strict, generated-code-free schema validation.
+- **`ajv`**: Use for strict JSON Schema validation.
 - **`mathjs`**: Use for safe mathematical parsing and evaluation.
 - **`jsonpath-plus`**: Use for advanced JSON querying.
 - **`fast-json-patch` / `json-pointer`**: Use for JSON patching and manipulations.

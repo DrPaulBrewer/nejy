@@ -1,7 +1,7 @@
 entries:
-  - key: zod
+  - key: ajv
     src: import
-    module: zod
+    module: ajv
     risk: LOW
 
   - key: jsonpointer

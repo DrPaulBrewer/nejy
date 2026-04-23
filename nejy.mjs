@@ -4,11 +4,12 @@ import process from 'node:process';
 import YAML from 'yaml';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { z } from 'zod';
+import Ajv from 'ajv';
 import ResourceMonitor from './monitor/index.js';
 import { buildMods, loadRegistry } from './lib/buildMods.mjs';
 import { Command } from 'commander';
 import { SecurityScanner } from './lib/interp/scanner.mjs';
+import { PolicySchema } from './lib/schema/policy.mjs';
 import { run } from './lib/interp/commands.mjs';
 import { getDefaultRegistry } from './lib/registryDiscovery.mjs';
 
@@ -20,6 +21,9 @@ const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
 const NEJY_VERSION = pkg.version;
 
 export { getDefaultRegistry };
+
+const ajv = new Ajv({ useDefaults: true, allErrors: true });
+const validatePolicy = ajv.compile(PolicySchema);
 
 export function loadSetup(policyName, filename = "unknown", registryPaths = undefined) {
     let policyPath;
@@ -34,21 +38,17 @@ export function loadSetup(policyName, filename = "unknown", registryPaths = unde
     }
     const rawPolicy = JSON.parse(fs.readFileSync(policyPath, 'utf8'));
 
-    const PolicySchema = z.object({
-        maxRisk: z.enum(["LOW", "MEDIUM", "HIGH", "INSANE"]).default("LOW"),
-        quotas: z.object({
-            maxCpuMs: z.number().nonnegative(),
-            maxMemoryMb: z.number().nonnegative(),
-            maxFsBytes: z.number().nonnegative(),
-        }).strict()
-    }).strict();
+    const isValid = validatePolicy(rawPolicy);
 
-    let policy;
-    try {
-        policy = PolicySchema.parse(rawPolicy);
-    } catch (e) {
-        throw new Error(`❌ Policy Validation Error in ${policyPath}:\n` + e.issues.map(i => `  - ${i.path.join('.')}: ${i.message}`).join('\n'));
+    if (!isValid) {
+        const errors = validatePolicy.errors.map(err => {
+            const path = err.instancePath.replace(/^\//, '').replace(/\//g, '.');
+            return `  - ${path || 'root'}: ${err.message}`;
+        }).join('\n');
+        throw new Error(`❌ Policy Validation Error in ${policyPath}:\n${errors}`);
     }
+
+    const policy = rawPolicy;
 
     // ENV and Bounding Logic
     const riskMap = { "LOW": 0, "MEDIUM": 1, "HIGH": 2, "INSANE": 3 };
