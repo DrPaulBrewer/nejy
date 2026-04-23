@@ -121,6 +121,10 @@ entries:
     src: global
     risk: LOW
 
+  - key: AbortController
+    src: global
+    risk: LOW
+
   # --- Web Crypto API ---
 
   - key: crypto
