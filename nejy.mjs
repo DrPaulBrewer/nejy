@@ -92,8 +92,21 @@ export async function nejyScan(prog, policyName = "LOW", registryPaths = undefin
     return true;
 }
 
-export async function nejyRun(prog, policyName = "LOW", registryPaths = undefined) {
+
+
+
+export async function createNejyContext(policyName = "LOW", registryPaths = undefined) {
     const { policy, registryEntries, scanner } = loadSetup(policyName, "program", registryPaths);
+
+    // We do NOT buildMods yet, because scanner hasn't scanned.
+    // The REPL will need to explicitly build/rebuild mods after scanning statements.
+
+    // Return the bare setup pieces. The REPL and nejyRun will handle building mods.
+    return { policy, registryEntries, scanner };
+}
+
+export async function nejyRun(prog, policyName = "LOW", registryPaths = undefined) {
+    const { policy, registryEntries, scanner } = await createNejyContext(policyName, registryPaths);
 
     let scannedProg = prog;
     try {
@@ -122,6 +135,7 @@ export async function nejyRun(prog, policyName = "LOW", registryPaths = undefine
 
     try {
         await run(scannedProg, ctx, false);
+
         if (!ctx.vars["$USAGE"]) ctx.vars["$USAGE"] = ctx.mon.usage;
         return {
             errorMsg: null,
@@ -171,6 +185,20 @@ function runCLI() {
                 console.error(`❌ ${e.message}`);
                 process.exit(1);
             }
+        });
+
+
+    program.command('repl')
+        .description('Start an interactive REPL for nejy')
+        .argument('[format]', 'Format to use (yaml or json)', 'yaml')
+        .option('-p, --policy <policy>', 'Policy level to enforce (LOW, MEDIUM, HIGH)', 'LOW')
+        .option('-r, --registry <registry>', 'Comma separated list of registry files')
+        .option('--dark', 'Use dark theme for syntax highlighting')
+        .option('--bright', 'Use bright theme for syntax highlighting')
+        .option('--contrast', 'Use contrast theme for syntax highlighting')
+        .action(async (format, options) => {
+            const { startREPL } = await import('./lib/repl.mjs');
+            await startREPL(format, options);
         });
 
     program.command('run')
