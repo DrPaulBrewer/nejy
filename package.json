@@ -23,7 +23,8 @@
     "test:request": "node --test tests/request.test.mjs",
     "test:redteam": "node --test tests/redteam.test.mjs",
     "test:repl": "node --test tests/repl.test.mjs",
-    "test:all": "node --test tests/integration.test.mjs tests/security.test.mjs tests/buildMods.test.mjs tests/context-isolation.test.mjs tests/request.test.mjs tests/redteam.test.mjs tests/sandbox/sandbox.test.mjs tests/repl.test.mjs"
+    "test:all": "node --test tests/integration.test.mjs tests/security.test.mjs tests/buildMods.test.mjs tests/context-isolation.test.mjs tests/request.test.mjs tests/redteam.test.mjs tests/sandbox/sandbox.test.mjs tests/repl.test.mjs tests/hints.test.mjs",
+    "test:hints": "node --test tests/hints.test.mjs"
   },
   "dependencies": {
     "ajv": "^8.20.0",
