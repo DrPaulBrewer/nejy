@@ -91,9 +91,12 @@
             "maxItems": 2,
             "items": [
               {
-                "type": "string"
+                "type": "string",
+                "title": "destinationVariable"
               },
-              {}
+              {
+                "title": "value"
+              }
             ]
           }
         ]
@@ -120,32 +123,42 @@
             "maxItems": 3,
             "items": [
               {
-                "type": "string"
+                "type": "string",
+                "title": "targetPath"
               },
               {
-                "type": "array"
+                "type": "array",
+                "title": "arguments"
               },
               {
                 "anyOf": [
                   {
-                    "type": "string"
+                    "type": "string",
+                    "title": "destinationVariable"
                   },
                   {
                     "type": "object",
                     "properties": {
                       "into": {
-                        "type": "string"
+                        "type": "string",
+                        "title": "destinationVariable"
                       },
                       "chain": {
-                        "type": "array"
+                        "type": "array",
+                        "title": "methodNames"
                       },
                       "compose": {
-                        "type": "array"
+                        "type": "array",
+                        "title": "targets"
                       },
-                      "promise": {}
-                    }
+                      "promise": {
+                        "title": "destinationPromiseVariable"
+                      }
+                    },
+                    "title": "destinationOptions"
                   }
-                ]
+                ],
+                "title": "configurationOrDestination"
               }
             ]
           }
@@ -173,7 +186,8 @@
             "maxItems": 3,
             "items": [
               {
-                "type": "string"
+                "type": "string",
+                "title": "functionName"
               },
               {
                 "type": "array",
@@ -186,10 +200,12 @@
                       "type": "object"
                     }
                   ]
-                }
+                },
+                "title": "formalArguments"
               },
               {
-                "$ref": "#/$defs/subprogram"
+                "$ref": "#/$defs/subprogram",
+                "title": "subprogramSteps"
               }
             ]
           }
@@ -217,7 +233,8 @@
             "maxItems": 3,
             "items": [
               {
-                "type": "string"
+                "type": "string",
+                "title": "functionName"
               },
               {
                 "type": "array",
@@ -230,10 +247,12 @@
                       "type": "object"
                     }
                   ]
-                }
+                },
+                "title": "formalArguments"
               },
               {
-                "type": "string"
+                "type": "string",
+                "title": "mathExpression"
               }
             ]
           }
@@ -271,10 +290,12 @@
                   {
                     "type": "array"
                   }
-                ]
+                ],
+                "title": "listSpecifier"
               },
               {
-                "$ref": "#/$defs/subprogram"
+                "$ref": "#/$defs/subprogram",
+                "title": "subprogramSteps"
               }
             ]
           }
@@ -301,12 +322,16 @@
             "minItems": 2,
             "maxItems": 3,
             "items": [
-              {},
               {
-                "$ref": "#/$defs/subprogram"
+                "title": "condition"
               },
               {
-                "$ref": "#/$defs/subprogram"
+                "$ref": "#/$defs/subprogram",
+                "title": "trueBranchSteps"
+              },
+              {
+                "$ref": "#/$defs/subprogram",
+                "title": "falseBranchSteps"
               }
             ]
           }
@@ -334,10 +359,12 @@
             "maxItems": 2,
             "items": [
               {
-                "$ref": "#/$defs/subprogram"
+                "$ref": "#/$defs/subprogram",
+                "title": "tryBlockSteps"
               },
               {
-                "$ref": "#/$defs/subprogram"
+                "$ref": "#/$defs/subprogram",
+                "title": "catchBlockSteps"
               }
             ]
           }
@@ -399,13 +426,16 @@
                       }
                     }
                   }
-                ]
+                ],
+                "title": "sandboxOptions"
               },
               {
-                "$ref": "#/$defs/subprogram"
+                "$ref": "#/$defs/subprogram",
+                "title": "subprogramSteps"
               },
               {
-                "type": "string"
+                "type": "string",
+                "title": "destinationVariable"
               }
             ]
           }
@@ -433,13 +463,16 @@
             "maxItems": 3,
             "items": [
               {
-                "type": "string"
+                "type": "string",
+                "title": "functionName"
               },
               {
-                "type": "array"
+                "type": "array",
+                "title": "arguments"
               },
               {
-                "type": "string"
+                "type": "string",
+                "title": "destinationPromiseVariable"
               }
             ]
           }
@@ -467,10 +500,12 @@
             "maxItems": 2,
             "items": [
               {
-                "type": "string"
+                "type": "string",
+                "title": "sourcePromiseVariable"
               },
               {
-                "type": "string"
+                "type": "string",
+                "title": "destinationVariable"
               }
             ]
           }
@@ -498,13 +533,16 @@
             "maxItems": 3,
             "items": [
               {
-                "type": "string"
+                "type": "string",
+                "title": "targetConstructor"
               },
               {
-                "type": "array"
+                "type": "array",
+                "title": "arguments"
               },
               {
-                "type": "string"
+                "type": "string",
+                "title": "destinationVariable"
               }
             ]
           }
@@ -531,9 +569,12 @@
             "minItems": 1,
             "maxItems": 2,
             "items": [
-              {},
               {
-                "type": "string"
+                "title": "value"
+              },
+              {
+                "type": "string",
+                "title": "destinationVariable"
               }
             ]
           }
@@ -578,14 +619,17 @@
         "items": [
           {
             "type": "string",
-            "pattern": "^ "
+            "pattern": "^ ",
+            "title": "mathExpression"
           },
           {
             "type": "array",
-            "maxItems": 0
+            "maxItems": 0,
+            "title": "emptyArguments"
           },
           {
-            "type": "string"
+            "type": "string",
+            "title": "destinationVariable"
           }
         ]
       }
@@ -626,13 +670,16 @@
         "maxItems": 3,
         "items": [
           {
-            "type": "string"
+            "type": "string",
+            "title": "targetPath"
           },
           {
-            "type": "array"
+            "type": "array",
+            "title": "arguments"
           },
           {
-            "type": "string"
+            "type": "string",
+            "title": "configurationOrDestination"
           }
         ]
       }
