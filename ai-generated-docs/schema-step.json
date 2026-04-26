@@ -1,0 +1,635 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "nejy-step",
+  "title": "Nejy Single Step Validation Schema",
+  "type": "array",
+  "minItems": 1,
+  "maxItems": 3,
+  "items": [
+    {
+      "type": "string"
+    }
+  ],
+  "allOf": [
+    {
+      "$ref": "#/$defs/command_SET"
+    },
+    {
+      "$ref": "#/$defs/command_EXEC"
+    },
+    {
+      "$ref": "#/$defs/command_F"
+    },
+    {
+      "$ref": "#/$defs/command_MATH"
+    },
+    {
+      "$ref": "#/$defs/command_FOR_EACH"
+    },
+    {
+      "$ref": "#/$defs/command_IF"
+    },
+    {
+      "$ref": "#/$defs/command_TRY"
+    },
+    {
+      "$ref": "#/$defs/command_SANDBOX"
+    },
+    {
+      "$ref": "#/$defs/command_CHILD"
+    },
+    {
+      "$ref": "#/$defs/command_AWAIT"
+    },
+    {
+      "$ref": "#/$defs/command_NEW"
+    },
+    {
+      "$ref": "#/$defs/command_LITERAL"
+    },
+    {
+      "$ref": "#/$defs/command_REQUEST"
+    },
+    {
+      "$ref": "#/$defs/implicit_math"
+    },
+    {
+      "$ref": "#/$defs/implicit_exec"
+    }
+  ],
+  "$defs": {
+    "subprogram": {
+      "type": "array",
+      "items": {
+        "$ref": "#"
+      }
+    },
+    "command_SET": {
+      "if": {
+        "items": [
+          {
+            "const": "SET"
+          }
+        ]
+      },
+      "then": {
+        "minItems": 2,
+        "maxItems": 2,
+        "items": [
+          {
+            "const": "SET"
+          },
+          {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": [
+              {
+                "type": "string"
+              },
+              {}
+            ]
+          }
+        ]
+      }
+    },
+    "command_EXEC": {
+      "if": {
+        "items": [
+          {
+            "const": "EXEC"
+          }
+        ]
+      },
+      "then": {
+        "minItems": 2,
+        "maxItems": 3,
+        "items": [
+          {
+            "const": "EXEC"
+          },
+          {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 3,
+            "items": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array"
+              },
+              {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "into": {
+                        "type": "string"
+                      },
+                      "chain": {
+                        "type": "array"
+                      },
+                      "compose": {
+                        "type": "array"
+                      },
+                      "promise": {}
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "command_F": {
+      "if": {
+        "items": [
+          {
+            "const": "F"
+          }
+        ]
+      },
+      "then": {
+        "minItems": 2,
+        "maxItems": 2,
+        "items": [
+          {
+            "const": "F"
+          },
+          {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "object"
+                    }
+                  ]
+                }
+              },
+              {
+                "$ref": "#/$defs/subprogram"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "command_MATH": {
+      "if": {
+        "items": [
+          {
+            "const": "MATH"
+          }
+        ]
+      },
+      "then": {
+        "minItems": 2,
+        "maxItems": 2,
+        "items": [
+          {
+            "const": "MATH"
+          },
+          {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "object"
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "command_FOR_EACH": {
+      "if": {
+        "items": [
+          {
+            "const": "FOR_EACH"
+          }
+        ]
+      },
+      "then": {
+        "minItems": 2,
+        "maxItems": 2,
+        "items": [
+          {
+            "const": "FOR_EACH"
+          },
+          {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": [
+              {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "array"
+                  }
+                ]
+              },
+              {
+                "$ref": "#/$defs/subprogram"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "command_IF": {
+      "if": {
+        "items": [
+          {
+            "const": "IF"
+          }
+        ]
+      },
+      "then": {
+        "minItems": 2,
+        "maxItems": 2,
+        "items": [
+          {
+            "const": "IF"
+          },
+          {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 3,
+            "items": [
+              {},
+              {
+                "$ref": "#/$defs/subprogram"
+              },
+              {
+                "$ref": "#/$defs/subprogram"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "command_TRY": {
+      "if": {
+        "items": [
+          {
+            "const": "TRY"
+          }
+        ]
+      },
+      "then": {
+        "minItems": 2,
+        "maxItems": 2,
+        "items": [
+          {
+            "const": "TRY"
+          },
+          {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 2,
+            "items": [
+              {
+                "$ref": "#/$defs/subprogram"
+              },
+              {
+                "$ref": "#/$defs/subprogram"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "command_SANDBOX": {
+      "if": {
+        "items": [
+          {
+            "const": "SANDBOX"
+          }
+        ]
+      },
+      "then": {
+        "minItems": 2,
+        "maxItems": 2,
+        "items": [
+          {
+            "const": "SANDBOX"
+          },
+          {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 3,
+            "items": [
+              {
+                "anyOf": [
+                  {
+                    "const": "copy"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "policy": {
+                        "type": "string"
+                      },
+                      "capabilities": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "context": {
+                        "anyOf": [
+                          {
+                            "const": "$VARS"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          {
+                            "type": "object"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "$ref": "#/$defs/subprogram"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "command_CHILD": {
+      "if": {
+        "items": [
+          {
+            "const": "CHILD"
+          }
+        ]
+      },
+      "then": {
+        "minItems": 2,
+        "maxItems": 2,
+        "items": [
+          {
+            "const": "CHILD"
+          },
+          {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "command_AWAIT": {
+      "if": {
+        "items": [
+          {
+            "const": "AWAIT"
+          }
+        ]
+      },
+      "then": {
+        "minItems": 2,
+        "maxItems": 2,
+        "items": [
+          {
+            "const": "AWAIT"
+          },
+          {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 2,
+            "items": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "command_NEW": {
+      "if": {
+        "items": [
+          {
+            "const": "NEW"
+          }
+        ]
+      },
+      "then": {
+        "minItems": 2,
+        "maxItems": 2,
+        "items": [
+          {
+            "const": "NEW"
+          },
+          {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 3,
+            "items": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "command_LITERAL": {
+      "if": {
+        "items": [
+          {
+            "const": "LITERAL"
+          }
+        ]
+      },
+      "then": {
+        "minItems": 2,
+        "maxItems": 2,
+        "items": [
+          {
+            "const": "LITERAL"
+          },
+          {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 2,
+            "items": [
+              {},
+              {
+                "type": "string"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "command_REQUEST": {
+      "if": {
+        "items": [
+          {
+            "const": "REQUEST"
+          }
+        ]
+      },
+      "then": {
+        "minItems": 2,
+        "maxItems": 2,
+        "items": [
+          {
+            "const": "REQUEST"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "implicit_math": {
+      "if": {
+        "items": [
+          {
+            "pattern": "^ "
+          }
+        ]
+      },
+      "then": {
+        "minItems": 1,
+        "maxItems": 3,
+        "items": [
+          {
+            "type": "string",
+            "pattern": "^ "
+          },
+          {
+            "type": "array",
+            "maxItems": 0
+          },
+          {
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "implicit_exec": {
+      "if": {
+        "not": {
+          "items": [
+            {
+              "enum": [
+                "SET",
+                "EXEC",
+                "F",
+                "MATH",
+                "FOR_EACH",
+                "IF",
+                "TRY",
+                "SANDBOX",
+                "CHILD",
+                "AWAIT",
+                "NEW",
+                "LITERAL",
+                "REQUEST"
+              ]
+            }
+          ]
+        },
+        "items": [
+          {
+            "not": {
+              "pattern": "^ "
+            }
+          }
+        ]
+      },
+      "then": {
+        "minItems": 1,
+        "maxItems": 3,
+        "items": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "array"
+          },
+          {
+            "type": "string"
+          }
+        ]
+      }
+    }
+  }
+}
