@@ -106,3 +106,60 @@ test('REPL startREPL - does not throw on startup due to missing _refreshLine', a
         Object.defineProperty(process, 'exit', { value: originalExit, configurable: true });
     }
 });
+
+test('REPL getCompleter - .monitor appears in dot command completions', () => {
+    let buffer = '';
+    const state = { ctx: { vars: {}, mods: {} } };
+    const completer = getCompleter('yaml', state, () => buffer);
+
+    const [completions] = completer('');
+    assert.ok(completions.includes('.monitor'), 'Should include .monitor in dot commands');
+});
+
+test('REPL getCompleter - .monitor completes on partial input', () => {
+    let buffer = '';
+    const state = { ctx: { vars: {}, mods: {} } };
+    const completer = getCompleter('yaml', state, () => buffer);
+
+    const [completions] = completer('.mon');
+    assert.ok(completions.includes('.monitor'), 'Should complete .monitor from .mon');
+});
+
+import ResourceMonitor from '../monitor/index.js';
+
+test('ResourceMonitor - disable prevents QUOTA_EXCEEDED from being thrown', () => {
+    const mon = new ResourceMonitor({ maxCpuMs: 0.001, maxMemoryMb: 0.001 });
+    mon.disable();
+    assert.doesNotThrow(() => mon.checkResources(), 'checkResources should not throw when disabled');
+    assert.strictEqual(mon.disabled, true, 'disabled flag should be true');
+});
+
+test('ResourceMonitor - enable re-activates quota enforcement', () => {
+    const mon = new ResourceMonitor({ maxCpuMs: 0.001, maxMemoryMb: 0.001 });
+    mon.disable();
+    mon.enable();
+    assert.strictEqual(mon.disabled, false, 'disabled flag should be false after enable()');
+    assert.throws(() => mon.checkResources(), /QUOTA_EXCEEDED/, 'checkResources should enforce quotas once re-enabled');
+});
+
+test('ResourceMonitor - disable still tracks usage metrics passively', () => {
+    const mon = new ResourceMonitor({ maxCpuMs: 0.001 });
+    mon.disable();
+    mon.checkResources();
+    assert.ok(typeof mon.usage.cpuMs === 'number' && mon.usage.cpuMs >= 0, 'usage.cpuMs should be tracked even when disabled');
+});
+
+test('ResourceMonitor - disable prevents FS_QUOTA_EXCEEDED', () => {
+    const mon = new ResourceMonitor({ maxFsBytes: 1 });
+    mon.disable();
+
+    let writtenData = null;
+    const fakeFs = {
+        writeFileSync: (path, data) => { writtenData = data; }
+    };
+    mon.instrumentFs(fakeFs);
+
+    assert.doesNotThrow(() => fakeFs.writeFileSync('/fake/path', 'hello world'), 'FS write should not throw when monitor is disabled');
+    assert.strictEqual(writtenData, 'hello world', 'FS write should still execute the underlying call');
+});
+

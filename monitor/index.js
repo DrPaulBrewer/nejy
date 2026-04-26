@@ -13,6 +13,19 @@ export default class ResourceMonitor {
     this.usage = { cpuMs: 0, fsBytes: 0, memoryMb: 0 };
     this.cpuStart = process.cpuUsage();
     this.isExhausted = false; // Prevents post-exhaustion execution
+    this.disabled = false;    // When true, quota limits are not enforced
+  }
+
+  /** Disable quota enforcement (security scanning still runs; monitor becomes passive). */
+  disable() {
+    this.disabled = true;
+  }
+
+  /** Re-enable quota enforcement. Also resets the exhaustion flag and CPU baseline. */
+  enable() {
+    this.disabled = false;
+    this.isExhausted = false;
+    this.cpuStart = process.cpuUsage();
   }
 
   /**
@@ -20,17 +33,17 @@ export default class ResourceMonitor {
    * then HARD_STOP on any subsequent attempts.
    */
   checkResources() {
-    if (this.isExhausted) {
+    if (!this.disabled && this.isExhausted) {
       throw new Error("HARD_STOP");
     }
 
     const cpuDiff = process.cpuUsage(this.cpuStart);
     this.usage.cpuMs = (cpuDiff.user + cpuDiff.system) / 1000;
-    
+
     const mem = process.memoryUsage();
     this.usage.memoryMb = mem.rss / 1024 / 1024;
 
-    if (this.usage.cpuMs > this.quotas.maxCpuMs || this.usage.memoryMb > this.quotas.maxMemoryMb) {
+    if (!this.disabled && (this.usage.cpuMs > this.quotas.maxCpuMs || this.usage.memoryMb > this.quotas.maxMemoryMb)) {
       this.isExhausted = true;
       throw new Error("QUOTA_EXCEEDED");
     }
@@ -38,7 +51,7 @@ export default class ResourceMonitor {
 
   instrumentFs(fsModule) {
     const checkQuota = (bytes) => {
-      if (this.usage.fsBytes + bytes > this.quotas.maxFsBytes) {
+      if (!this.disabled && this.usage.fsBytes + bytes > this.quotas.maxFsBytes) {
         throw new Error("FS_QUOTA_EXCEEDED");
       }
       this.usage.fsBytes += bytes;
