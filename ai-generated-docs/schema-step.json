@@ -139,11 +139,37 @@
                       },
                       "chain": {
                         "type": "array",
-                        "title": "methodNames"
+                        "items": {
+                          "type": "array",
+                          "items": [
+                            {
+                              "type": "string",
+                              "title": "method_name"
+                            },
+                            {
+                              "type": "array"
+                            }
+                          ],
+                          "minItems": 2,
+                          "maxItems": 2
+                        }
                       },
                       "compose": {
                         "type": "array",
-                        "title": "targets"
+                        "items": {
+                          "type": "array",
+                          "items": [
+                            {
+                              "type": "string",
+                              "title": "function_name"
+                            },
+                            {
+                              "type": "array"
+                            }
+                          ],
+                          "minItems": 2,
+                          "maxItems": 2
+                        }
                       },
                       "promise": {
                         "title": "destinationPromiseVariable"
