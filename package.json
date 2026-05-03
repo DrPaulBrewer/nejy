@@ -22,7 +22,7 @@
     "test:context": "node --test tests/context-isolation.test.mjs",
     "test:request": "node --test tests/request.test.mjs",
     "test:redteam": "node --test tests/redteam.test.mjs",
-    "test:all": "node --test tests/integration.test.mjs tests/security.test.mjs tests/buildMods.test.mjs tests/context-isolation.test.mjs tests/request.test.mjs tests/redteam.test.mjs tests/sandbox/sandbox.test.mjs"
+    "test:all": "node --test tests/integration.test.mjs tests/security.test.mjs tests/buildMods.test.mjs tests/context-isolation.test.mjs tests/request.test.mjs tests/redteam.test.mjs tests/sandbox/sandbox.test.mjs tests/safe-jsonpath.test.mjs"
   },
   "dependencies": {
     "ajv": "^8.18.0",
